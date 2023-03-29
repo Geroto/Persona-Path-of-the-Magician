@@ -95,6 +95,7 @@
     /*
     persona Module Section
     */
+    {
     Game_Actor.prototype.persona = function() {
   const note = this.actor().note;
   return note.match(/<Persona>/i) !== null;
@@ -129,25 +130,13 @@ Game_Actor.prototype.battletestPersona = function() {
 Game_Actor.prototype.hideStatusNickname = function() {
   return /<Hide status nickname>/.test(this.actor().note);
 };
-
-ImageManager.loadPersona = function(filename) {
-  if (typeof filename !== 'undefined') {
-    return this.loadBitmap("img/persona/", filename, 0, true);
-  } else {
-    console.error('Error: filename is undefined in ImageManager.loadPersona');
-    return null;
-  }
 };
 
-  {
-  ImageManager.isObjectCharacter = function(filename) {
-    if (!filename) {
-      return false;
-    }
-    var sign = filename.match(/^[\!\$]+/);
-    return sign && sign[0] === '!';
-  };
+ImageManager.isObjectCharacter = function(filename) {
+    var sign = filename.match(/^[!]+/);
+    return sign && sign[0].contains('!');
 };
+
 
     
     DataManager.persona_cgo = DataManager.create_game_objects;
