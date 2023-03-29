@@ -130,6 +130,14 @@ Game_Actor.prototype.hideStatusNickname = function() {
   return /<Hide status nickname>/.test(this.actor().note);
 };
 
+ImageManager.loadPersona = function(filename) {
+  if (typeof filename !== 'undefined') {
+    return this.loadBitmap("img/persona/", filename, 0, true);
+  } else {
+    console.error('Error: filename is undefined in ImageManager.loadPersona');
+    return null;
+  }
+};
 
 ImageManager.isObjectCharacter = function(filename) {
   if (filename === undefined) {
