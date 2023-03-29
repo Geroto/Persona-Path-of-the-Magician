@@ -95,48 +95,50 @@
     /*
     persona Module Section
     */
-    {
+   {
     Game_Actor.prototype.persona = function() {
-  const note = this.actor().note;
-  return note.match(/<Persona>/i) !== null;
+      const note = this.actor().note;
+      return note.match(/<Persona>/i) !== null;
+    };
+    
+    Game_Actor.prototype.users = function() {
+      const match = /<User: (\d+(,[ ]?\d+)*)?>/.exec(this.actor().note);
+      if (!match) {
+        return persona.DEFAULT_PERSONA_USERS;
+      }
+      const userStr = match[1];
+      const users = userStr.split(",").map(str => parseInt(str));
+      return users;
+    };
+    
+    Game_Actor.prototype.only_persona = function() {
+      const match = /<persona: (\d+)>/.exec(this.actor().note);
+      return match && match[1] ? parseInt(match[1]) : null;
+    };
+    
+    Game_Actor.prototype.minPlayerLevel = function() {
+      const match = /<Player level: (\d+)>/.exec(this.actor().note);
+      return match && match[1] ? parseInt(match[1]) : 0;
+    };
+    
+    Game_Actor.prototype.battletestPersona = function() {
+      const actor = $dataActors[this._actorId];
+      const match = /<Battletest persona: (\d+)>/.exec(actor.note);
+      return match && match[1] ? parseInt(match[1]) : 0;
+    };
+    
+    Game_Actor.prototype.hideStatusNickname = function() {
+      return /<Hide status nickname>/.test(this.actor().note);
+    };
+   };
+
+  {
+    ImageManager.loadPersona = function(filename) {
+  return this.loadBitmap("img/persona/", filename, 0, true);
 };
 
-Game_Actor.prototype.users = function() {
-  const match = /<User: (\d+(,[ ]?\d+)*)?>/.exec(this.actor().note);
-  if (!match) {
-    return persona.DEFAULT_PERSONA_USERS;
-  }
-  const userStr = match[1];
-  const users = userStr.split(",").map(str => parseInt(str));
-  return users;
-};
-
-Game_Actor.prototype.only_persona = function() {
-  const match = /<persona: (\d+)>/.exec(this.actor().note);
-  return match && match[1] ? parseInt(match[1]) : null;
-};
-
-Game_Actor.prototype.minPlayerLevel = function() {
-  const match = /<Player level: (\d+)>/.exec(this.actor().note);
-  return match && match[1] ? parseInt(match[1]) : 0;
-};
-
-Game_Actor.prototype.battletestPersona = function() {
-  const actor = $dataActors[this._actorId];
-  const match = /<Battletest persona: (\d+)>/.exec(actor.note);
-  return match && match[1] ? parseInt(match[1]) : 0;
-};
-
-Game_Actor.prototype.hideStatusNickname = function() {
-  return /<Hide status nickname>/.test(this.actor().note);
-};
-};
-
- {
-    ImageManager.loadBitmap("img/persona/", filename, 0, true);
   };
-
-
+ 
     
     DataManager.persona_cgo = DataManager.create_game_objects;
     DataManager.create_game_objects = function() {
@@ -926,9 +928,9 @@ Game_Actor.prototype.hideStatusNickname = function() {
     
       determineWindowSize() {
         // determines window's size according to the size of the button images
-        this._selectButton = ImageManager.loadPersona(SELECT_PERSONA_BUTTON_IMG_NAME);
-        this._equipButton = ImageManager.loadPersona(EQUIP_PERSONA_BUTTON_IMG_NAME);
-        this._releaseButton = ImageManager.loadPersona(RELEASE_PERSONA_BUTTON_IMG_NAME);
+        this._selectButton = ImageManager.loadPersona("select_persona_button.png");
+        this._equipButton = ImageManager.loadPersona("equip_persona_button")
+        this._releaseButton = ImageManager.loadPersona("release_persona_button.png")
         // largest height and width between the two button images
         const height = Math.max(this._selectButton.height, this._equipButton.height, this._releaseButton.height);
         const width = Math.max(this._selectButton.width, this._equipButton.width, this._releaseButton.width);
