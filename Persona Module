@@ -132,13 +132,15 @@ Game_Actor.prototype.hideStatusNickname = function() {
 
 
 ImageManager.isObjectCharacter = function(filename) {
+  if (filename === undefined) {
+    console.warn('ImageManager.isObjectCharacter: filename is undefined');
+    return false;
+  }
+
   var sign = filename.match(/^[\!\$]+/);
   return sign && sign[0].contains('!');
 };
 
-ImageManager.loadPersona = function(filename) {
-  return this.loadBitmap("img/persona/", filename, 0, true);
-};
     
     DataManager.persona_cgo = DataManager.create_game_objects;
     DataManager.create_game_objects = function() {
