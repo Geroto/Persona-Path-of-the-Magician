@@ -1,0 +1,1282 @@
+{
+    function persona() {}
+    
+    persona.PERSONA_EXP_GAIN_MULTIPLIER = 1.0;
+    
+    // phys, absorb, fire, ice, lightning, water, earth, wind, light, dark
+    persona.PERSONA_ELE_ICON_INDEXES = [115, 112, 96, 97, 98, 99, 100, 101, 102, 103];
+    
+    // icon index that indicates that indicates the persona's strong element
+    // -1 will just show "Str"
+    persona.PERSONA_STRONG_ELE_ICON = -1;
+    
+    // icon index that indicates that indicates the persona's weak element
+    // -1 will just show "Wk"
+    persona.PERSONA_WEAK_ELE_ICON = -1;
+    
+    // icon index that indicates that indicates the persona's normal element
+    // -1 will just show "-"
+    persona.PERSONA_NORMAL_ELE_ICON = -1;
+    
+    // rates multipliers. if all are the same only one number can be used for all
+    persona.USER_ELEMENT_RATE_MULTIPLIER = 1.0;
+    persona.USER_DEBUFF_RATE_MULTIPLIER = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+    persona.USER_STATE_RATE_MULTIPLIER = 1.0;
+    persona.PERSONA_ELEMENT_RATE_MULTIPLIER = 1.0;
+    persona.PERSONA_DEBUFF_RATE_MULTIPLIER = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+    persona.PERSONA_STATE_RATE_MULTIPLIER = 1.0;
+    
+    // parameter multipliers. if all are the same only one number can be used for all
+    persona.USER_PARAM_MULTIPLIER = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+    persona.USER_XPARAM_MULTIPLIER = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+    persona.USER_SPARAM_MULTIPLIER = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+    persona.PERSONA_PARAM_MULTIPLIER = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+    persona.PERSONA_XPARAM_MULTIPLIER = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+    persona.PERSONA_SPARAM_MULTIPLIER = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
+    
+    // Name of the persona option in the menu and battle command
+    persona.PERSONA_MENU_NAME = "personas";
+    
+    // index of persona command in battle commands window
+    persona.PERSONA
+    
+    //////
+    /*
+    Skill Forget Module Options
+    */
+    // max number of skills a persona can have
+    var DEFAULT_MAX_PERSONA_SKILLS = 4;
+    
+    ///////
+    /*
+    Arcana Module Options
+    */
+    
+    //min arcana rank. arcanas start with 0 rank and will be shown only 
+      // when at MIN_RANK or higher
+      MIN_RANK = 1
+      DEFAULT_MAX_RANK = 10 // default maximum rank of persona arcana
+      
+      // folder of the arcana cards images
+      ARCANA_IMG_FOLDER = "persona/Arcanas/" // inside Graphics folder
+      
+      // name of the social links in the menu
+      ARCANA_MENU_NAME = "Social Links" // alternative name for Social Links
+      ARCANA_MENU_COMMAND_INDEX = 2 // set to nil to hide
+      
+      // file names for the arcana rank progression bar
+      ARCANA_RANKS_BAR_IMG_NAME = "bar"
+      ARCANA_PROGRESS_IMG_NAME = "progress"
+      ARCANA_PROGRESS_EMPTY_IMG_NAME = "progress_empty"
+    
+    ///////
+    /*
+    Evolution Module Options
+    */
+    // ID of common event that runs when a persona is being evolved
+    COMMON_EVENT_ID = 1
+    
+    // variable id in which the name of the persona that is being evolved is stored
+    EVOLVING_PERSONA_VAR_ID = 13
+    // variable id in which the name of the persona to which the persona will be evolved
+    RESULTING_PERSONA_VAR_ID = 14
+    
+    //////
+    /*
+    Fusion Module Options
+    */
+    // list of actor ids whose personas can be fused.
+    // example: if [1, 4, 6] then the player can fuse personas that belong to
+    // the actors with id 1, 4 and 6
+    
+    
+    /////
+    
+    /*
+    persona Module Section
+    */
+    {
+      Game_Actor.prototype.persona = function() {
+        const note = this.actor().note;
+        return note.match(/<Persona>/i) !== null;
+      };
+    
+      Game_Actor.prototype.users = function() {
+        const match = /<User: (\d+(,[ ]?\d+)*)?>/.exec(this.actor().note);
+        if (!match) {
+          return persona.DEFAULT_PERSONA_USERS;
+        }
+        const userStr = match[1];
+        const users = userStr.split(",").map(str => parseInt(str));
+        return users;
+      };
+      
+      Game_Actor.prototype.only_persona = function() {
+        const match = /<persona: (\d+)>/.exec(this.actor().note);
+        return match && match[1] ? parseInt(match[1]) : null;
+      };
+    
+      Game_Actor.prototype.minPlayerLevel = function() {
+        const match = /<Player level: (\d+)>/.exec(this.actor().note);
+        return match && match[1] ? parseInt(match[1]) : 0;
+      };
+    
+      Game_Actor.prototype.battletestPersona = function() {
+        const match = /<Battletest persona: (\d+)>/.exec(this.actor().note);
+        return match && match[1] ? parseInt(match[1]) : 0;
+      };
+    
+      Game_Actor.prototype.hideStatusNickname = function() {
+        return /<Hide status nickname>/.test(this.note);
+      };
+    };
+
+{
+    ImageManager.isObjectCharacter = function(filename) {
+      if (!filename) {
+        return false;
+      }
+      var sign = filename.match(/^[\!\$]+/);
+      return sign && sign[0].contains('!');
+    }
+  };   
+    
+    
+    
+    DataManager.persona_cgo = DataManager.create_game_objects;
+    DataManager.create_game_objects = function() {
+      DataManager.persona_cgo.call(this);
+      $gamePersonas = new Game_Personas();
+    };
+    
+    DataManager.persona_msc = DataManager.make_save_contents;
+    DataManager.make_save_contents = function() {
+      var contents = DataManager.persona_msc.call(this);
+      contents.personas = $gamePersonas;
+      return contents;
+    };
+    
+    DataManager.persona_esc = DataManager.extract_save_contents;
+    DataManager.extract_save_contents = function(contents) {
+      DataManager.persona_esc.call(this, contents);
+      $gamePersonas = contents.personas;
+    };
+    
+    //Note that in RPG Maker MV, you do not need to define a module and class structure for DataManager. Instead, you can simply define the functions and their respective aliases within a self-executing anonymous function. Also note that in RPG Maker MV, global variables should be declared with the var keyword to avoid conflicts with other scripts.
+    
+    function Game_Personas() {
+      // Add any properties and methods you need for the Game_Personas class here
+    }
+    
+    (function() {
+      var DataManager_createGameObjects = DataManager.createGameObjects;
+      DataManager.createGameObjects = function() {
+        DataManager_createGameObjects.call(this);
+        $gamePersonas = new Game_Personas();
+      };
+    
+      var DataManager_makeSaveContents = DataManager.makeSaveContents;
+      DataManager.makeSaveContents = function() {
+        var contents = DataManager_makeSaveContents.call(this);
+        contents.personas = $gamePersonas;
+        return contents;
+      };
+    
+      var DataManager_extractSaveContents = DataManager.extractSaveContents;
+      DataManager.extractSaveContents = function(contents) {
+        DataManager_extractSaveContents.call(this, contents);
+        $gamePersonas = contents.personas;
+      };
+    })();
+    
+    
+    (function() {
+      class Game_Actor extends Game_Battler {
+        constructor() {
+          super();
+          this._users = [];
+          this._onlyPersona = null;
+          this._minPlayerLevel = 0;
+          this._isPersona = false;
+          this._persona = null;
+          this._changedPersona = false;
+          this.persona();
+        }           
+      
+        setup(actorId) {
+          this._persona = null;
+          this._changedPersona = false;
+          super.setup(actorId);
+          this.setupPersona();
+        }
+      
+        setupPersona() {
+          const actor = this.actor();
+          this._isPersona = actor.persona();
+          this._users = actor.users();
+          this._onlyPersona = actor.onlyPersona();
+          this._minPlayerLevel = actor.minPlayerLevel();
+        }
+        
+        actor() {
+          return $dataActors[this._actorId];
+        }
+
+        persona() {
+          return this._persona;
+        }
+      
+        characterName() {
+          return this._characterName;
+      }
+
+      characterIndex() {
+        return this._characterIndex;
+      }
+
+        personaChangeOk(persona) {
+          if (this._changedPersona) {
+            return false;
+          }
+          if (this._persona === persona) {
+            return false;
+          }
+          if (!this.canEquipPersona(persona)) {
+            return false;
+          }
+          return true;
+        }
+      
+        canChangePersona() {
+          return !this._changedPersona;
+        }
+      
+        changePersona(persona) {
+          if (!this.personaChangeOk(persona)) {
+            return;
+          }
+          if (!$gameParty.personas().find(p => p.id === persona.id)) {
+            return;
+          }
+      
+          // When changing persona keep the same hp rate the actor had with the 
+          // previous one
+          const prevHpRate = this.hpRate();
+          const prevMpRate = this.mpRate();
+      
+          this._persona = persona;
+          this._changedPersona = $gameParty.inBattle();
+          this.refresh();
+      
+          this._hp = Math.floor(this.mhp * prevHpRate);
+          this._mp = Math.floor(this.mmp * prevMpRate);
+        }
+      
+        canEquipPersona(persona) {
+          if (!this._users.includes(persona.user)) {
+            return false;
+          }
+          if (this._onlyPersona && this._persona !== persona) {
+            return false;
+          }
+          if (this._minPlayerLevel > $gameParty.highestLevel()) {
+            return false;
+          }
+          return true;
+        }
+      }
+    
+      // add the Game_Actor class to the global namespace
+      window.Game_Actor = Game_Actor;
+    })();
+    
+    
+    Game_Actor.prototype.forceChangePersona = function(personaId) {
+      if (!$gameParty.personas.find(p => p.id === personaId)) {
+        return;
+      }
+    
+      // Force change persona without checking if it is ok
+      const prevHpRate = this.hpRate();
+      const prevMpRate = this.mpRate();
+    
+      this._persona = $gamePersonas[personaId];
+      this._changedPersona = true;
+    
+      this.refresh();
+    
+      this._hp = Math.round(this.mhp * prevHpRate);
+      this._mp = Math.round(this.mmp * prevMpRate);
+    };
+    
+    // Define the plugin and its functions
+    (function() {
+      // Override the removePersonaById() function to remove the persona and recalculate hp/mp
+      var _Game_Actor_removePersonaById = Game_Actor.prototype.removePersonaById;
+      Game_Actor.prototype.removePersonaById = function() {
+          const prev_hp_rate = this.hpRate();
+          const prev_mp_rate = this.mpRate();
+    
+          _Game_Actor_removePersonaById.call(this);
+    
+          this._hp = Math.round(this.mhp * prev_hp_rate);
+          this._mp = Math.round(this.mmp * prev_mp_rate);
+      };
+    
+      // Override the addedSkillTypes() function to include persona added skill types
+      Game_Actor.prototype.addedSkillTypes = function() {
+          let skillTypes = this.personaAst();
+          if (UNIFIED_SKILLS) {
+              skillTypes = [...new Set([...skillTypes, ...this.personaAddedSkillTypes()])];
+          }
+          return skillTypes;
+      };
+    
+      // Override the skills() function to include persona skills
+      Game_Actor.prototype.skills = function() {
+          let actorSkills = this.persona_s();
+          if (UNIFIED_SKILLS) {
+              actorSkills = [...new Set([...actorSkills, ...this.persona_skills()])];
+          }
+          return actorSkills;
+      };
+    
+      // Add a new function persona_skills() to return the skills of the actor's persona
+      Game_Actor.prototype.persona_skills = function() {
+          if (this._persona) {
+              return this._persona.skills;
+          }
+          return [];
+      };
+    
+      // Add a new function personaAddedSkillTypes() to return the added skill types of the actor's persona
+      Game_Actor.prototype.personaAddedSkillTypes = function() {
+          if (this._persona) {
+              return this._persona.added_skill_types;
+          }
+          return [];
+      };
+   
+    
+    /*Explanation:
+    
+    The first function `removePersonaById()` is an override function that modifies the behavior of the `Game_Actor` prototype. The original function removes the actor's persona and recalculates the actor's HP and MP based on the previous HP and MP rates. The override function calls the original function and then recalculates the HP and MP based on the previous HP and MP rates.
+    
+    The next two functions override the `addedSkillTypes()` and `skills()` functions of the `Game_Actor` prototype. These functions are used to return the skill types and skills of the actor, respectively. The override functions add the persona's added skill types and skills to the result if `UNIFIED_SKILLS` is set to true.
+    
+    The last two functions `persona_skills()` and `personaAddedSkillTypes()` are added to the `Game_Actor` prototype. These functions return the skills and added skill types of the actor's persona if it exists.
+    */
+    
+    Game_Actor.prototype.isPersona = function() {
+      return this._persona !== null;
+    }
+      })();
+
+
+    Game_BattlerBase.prototype.stateResist = function(stateId) {
+      var actorResists = this.traitObjects().some(function(obj) {
+        return obj.meta.stateResist && obj.meta.stateResist.split(' ').map(Number).contains(stateId);
+      });
+      var personaResists = false;
+      if (!this.isPersona() && this._persona) {
+        personaResists = this._persona.stateResistSet().contains(stateId);
+      }
+      return actorResists || personaResists;
+    };
+    
+    
+    Game_Actor.prototype.personaParam = Game_Actor.prototype.param;
+    Game_Actor.prototype.param = function(paramId) {
+    var value = this.personaParam(paramId);
+    if (!this.isPersona() && this._persona !== null) {
+    var userMult = Array.isArray(USER_PARAM_MULTIPLIER) ? USER_PARAM_MULTIPLIER[paramId] : USER_PARAM_MULTIPLIER;
+    var personaMult = Array.isArray(PERSONA_PARAM_MULTIPLIER) ? PERSONA_PARAM_MULTIPLIER[paramId] : PERSONA_PARAM_MULTIPLIER;
+    value = (value * userMult) + (this._persona.param(paramId) * personaMult);
+    }
+    return Math.round(value);
+    };
+    
+    Game_Actor.prototype.isPersona = function() {
+    return this._persona !== null;
+    };
+    
+    Game_BattlerBase.prototype.stateResist = function(stateId) {
+    var actorResists = this.traitObjects().some(function(obj) {
+    return obj.meta.stateResist && obj.meta.stateResist.split(' ').map(Number).includes(stateId);
+    });
+    var personaResists = false;
+    if (!this.isPersona() && this._persona) {
+    personaResists = this._persona.stateResistSet().includes(stateId);
+    }
+    return actorResists || personaResists;
+    };
+    
+    var fog_er = Game_Actor.prototype.elementRate;
+    Game_Actor.prototype.elementRate = function(elementId) {
+      // get the value of the actor's element rate
+      var value = fog_er.call(this, elementId);
+      if (!this.isPersona() && this._persona !== null) {
+        // get the actor's and persona's multiplier and add both of their element rate 
+        // with their respective multiplier
+        var userMult = Array.isArray(USER_ELEMENT_RATE_MULTIPLIER) ? USER_ELEMENT_RATE_MULTIPLIER[elementId] : USER_ELEMENT_RATE_MULTIPLIER;
+        var personaMult = Array.isArray(PERSONA_ELEMENT_RATE_MULTIPLIER) ? PERSONA_ELEMENT_RATE_MULTIPLIER[elementId] : PERSONA_ELEMENT_RATE_MULTIPLIER;
+        value = (value * userMult) + (this._persona.elementRate(elementId) * personaMult);
+      }
+      return value;
+    };
+    
+    
+    var _Game_BattlerBase_debuffRate = Game_BattlerBase.prototype.debuffRate;
+    Game_BattlerBase.prototype.debuffRate = function(paramId) {
+      var value = _Game_BattlerBase_debuffRate.call(this, paramId);
+      if (!this.isPersona() && this._persona) {
+        var userMult = USER_DEBUFF_RATE_MULTIPLIER.isString() ? eval(USER_DEBUFF_RATE_MULTIPLIER) : USER_DEBUFF_RATE_MULTIPLIER;
+        var personaMult = PERSONA_DEBUFF_RATE_MULTIPLIER.isString() ? eval(PERSONA_DEBUFF_RATE_MULTIPLIER) : PERSONA_DEBUFF_RATE_MULTIPLIER;
+        value = value * userMult + this._persona.featuresPi(FEATURE_DEBUFF_RATE, paramId) * personaMult;
+      }
+      return value;
+    };
+    
+    
+    var _Game_BattlerBase_stateRate = Game_BattlerBase.prototype.stateRate;
+    Game_BattlerBase.prototype.stateRate = function(stateId) {
+      var value = this.featuresPi(FEATURE_STATE_RATE, stateId);
+      if (!this.isPersona() && this._persona) {
+        var userMult = USER_STATE_RATE_MULTIPLIER.isString() ? eval(USER_STATE_RATE_MULTIPLIER) : USER_STATE_RATE_MULTIPLIER;
+        var personaMult = PERSONA_STATE_RATE_MULTIPLIER.isString() ? eval(PERSONA_STATE_RATE_MULTIPLIER) : PERSONA_STATE_RATE_MULTIPLIER;
+        value = value * userMult + this._persona.featuresPi(FEATURE_STATE_RATE, stateId) * personaMult;
+      }
+      return value;
+    };
+    
+    Game_Actor.prototype.persona_xparam = Game_Actor.prototype.xparam;
+    Game_Actor.prototype.xparam = function(xparamId) {
+        // get the value of the actor's x_parameter
+        let value = this.persona_xparam(xparamId);
+        if (!this.persona() && this._persona !== null) {
+            // get the actor's and persona's multiplier and add both of their x_parameters 
+            // with their respective multiplier
+            let userMult = Array.isArray(USER_PARAM_MULTIPLIER) ? USER_XPARAM_MULTIPLIER[xparamId] : USER_XPARAM_MULTIPLIER;
+            let personaMult = Array.isArray(PERSONA_PARAM_MULTIPLIER) ? PERSONA_XPARAM_MULTIPLIER[xparamId] : PERSONA_PARAM_MULTIPLIER;
+            value = (value * userMult) + (this._persona.xparam(xparamId) * personaMult);
+        }
+        return value;
+    };
+    
+    Game_Actor.prototype.persona_sparam = Game_Actor.prototype.sparam;
+    Game_Actor.prototype.sparam = function(sparamId) {
+        // get the value of the actor's s_parameter
+        let value = this.persona_sparam(sparamId);
+        if (!this.persona() && this._persona !== null) {
+            // get the actor's and persona's multiplier and add both of their s_parameters 
+            // with their respective multiplier
+            let userMult = Array.isArray(USER_PARAM_MULTIPLIER) ? USER_SPARAM_MULTIPLIER[sparamId] : USER_SPARAM_MULTIPLIER;
+            let personaMult = Array.isArray(PERSONA_PARAM_MULTIPLIER) ? PERSONA_SPARAM_MULTIPLIER[sparamId] : PERSONA_SPARAM_MULTIPLIER;
+            value = (value * userMult) + (this._persona.sparam(sparamId) * personaMult);
+        }
+        return value;
+    };
+    
+    function only_persona() {
+      return only_persona !== null;
+    }
+    
+    function can_equip_persona(persona) {
+      return persona.min_player_level <= level && $game_party.persona_available(persona);
+    }
+    
+    Game_Actor.prototype.gainExp = function(exp) {
+      var personaExp = this.gainExp.bind(this);
+      personaExp(exp);
+      if (!this.persona() && this._persona) {
+          this._persona.gainExp(exp);
+      }
+    };
+    
+    Game_Actor.prototype.finalExpRate = function() {
+      if (!this.persona()) {
+          return this.finalExpRate.bind(this)();
+      }
+      return this.exr() * persona.PERSONA_EXP_GAIN_MULTIPLIER;
+    };
+    
+    Game_Actor.prototype.index = function() {
+      if (!this.persona()) {
+          return this.index.bind(this)();
+      }
+      // return persona's index from user's personas list
+      var user = $gameParty.menuActor();
+      return $gameParty.actorsPersonas(user.actorId()).indexOf(this);
+    };
+    
+    function next_skill() {
+      return this.class.learnings.filter(learning => learning.level > level).reduce((min, learning) => learning.level < min.level ? learning : min, this.class.learnings[0]);
+    }
+    
+    // Define the plugin and its functions
+    (function() {
+      // Override the nextSkills() function to return skills that the actor will learn
+      Game_Actor.prototype.nextSkills = function() {
+          return this.constructor.learnings.filter(function(learning) {
+              return learning.level > this.level;
+          }, this);
+      };
+    
+      // Override the onBattleStart() function to reset the flag on battle start
+      var _Game_Actor_onBattleStart = Game_Actor.prototype.onBattleStart;
+      Game_Actor.prototype.onBattleStart = function() {
+          _Game_Actor_onBattleStart.call(this);
+          this.changedPersona = false;
+      };
+    
+      // Override the onTurnEnd() function to reset the flag on turn end
+      var _Game_Actor_onTurnEnd = Game_Actor.prototype.onTurnEnd;
+      Game_Actor.prototype.onTurnEnd = function() {
+          _Game_Actor_onTurnEnd.call(this);
+          this.changedPersona = false;
+      };
+    
+      // Override the onBattleEnd() function to reset the flag on battle end
+      var _Game_Actor_onBattleEnd = Game_Actor.prototype.onBattleEnd;
+      Game_Actor.prototype.onBattleEnd = function() {
+          _Game_Actor_onBattleEnd.call(this);
+          this.changedPersona = false;
+      };
+    })();
+    
+    /*Explanation:
+    
+    The first function `nextSkills()` is an override function that modifies the behavior of the `Game_Actor` prototype. The original function returned an array of all the skills the actor can learn, but the override function filters the array to only include skills that the actor can learn at the current level. This is done using the `filter()` function on the `learnings` array and passing a callback function that checks if the skill's level is greater than the actor's level.
+    
+    The next three functions override the `onBattleStart()`, `onTurnEnd()`, and `onBattleEnd()` functions of the `Game_Actor` prototype. These functions are called at the beginning, end of each turn, and end of a battle, respectively. Each of these functions call their corresponding base functions and then reset the `changedPersona` flag for the actor.
+    
+    The lack of semicolon error in Visual Studio is because the code is written in a style called Immediately Invoked Function Expression (IIFE) where the function is defined and executed in the same expression. In this case, the function is wrapped in parentheses to make it a function expression, and then immediately invoked with `()` at the end. The semicolon is not necessary in this case, as the parentheses at the end act as a separator between the function and its execution. However, some code editors, including Visual Studio, may still warn about the missing semicolon, but it does not affect the functionality of the code.
+    */
+    
+    class Game_Party extends Game_Unit {
+      constructor() {
+        super();
+        this.personas = [];
+        this.menu_persona_id = 0;
+        this.persona_init();
+      }
+    
+      personas() {
+        // returns party's personas
+        return this.personas.map(id => $game_personas[id]);
+      }
+    
+      setup_battle_test() {
+        super.setup_battle_test();
+        this.setup_test_battle_personas();
+      }
+    
+      battle_personas() {
+        return this.members.filter(m => m.persona != null).map(m => m.persona);
+      }
+    
+      persona_in_party(persona_name) {
+        return this.personas.find(p => p.name == persona_name) != null;
+      }
+    
+      persona_equipped_by(actor_id, persona_name) {
+        const actor = this.members.find(m => m.id == actor_id);
+        if (actor == null || actor.persona == null) {
+          return false;
+        }
+        return actor.persona.name == persona_name;
+      }
+    
+      persona_equipped(persona_name) {
+        const persona = this.personas.find(p => p.name == persona_name);
+        return this.persona_available(persona);
+      }
+    
+      setup_test_battle_personas() {
+        $data_system.test_battlers.forEach(battler => {
+          // get battletest persona of each battle test actor and equip them
+          const actor = $game_actors[battler.actor_id];
+          const btest_persona = $data_actors[battler.actor_id].battletest_persona;
+          if (btest_persona !== 0) {
+            actor.change_persona($game_actors[btest_persona]);
+          }
+        });
+      }
+    
+      add_persona_by_name(persona_name) {
+        const persona = $data_actors.find(a => a != null && a.name == persona_name);
+        if (persona == null) {
+          msgbox(`There was an attempt to add a persona with an incorrect name (${persona_name})`);
+          return;
+        }
+        this.add_persona_by_id(persona.id);
+      }
+    }
+    
+    function addPersonaById(personaId) {
+      // inform user (script user) about the mistake just in case
+      if (!$gamePersonas[personaId]) {
+        msgbox(`There was an attempt to add a persona with an invalid ID (${personaId})`);
+        return;
+      }
+    
+      if (!this.personas.includes(personaId) && $gamePersonas[personaId]) {
+        this.personas.push(personaId);
+      }
+      // auto equip new persona if there is a member that uses only one persona
+      const user = this.members.find((m) => m.onlyPersona === personaId);
+      if (user) {
+        user.changePersona($gamePersonas[personaId]);
+      }
+    
+      $gamePlayer.refresh();
+      $gameMap.needRefresh = true;
+    }
+    
+    function removePersonaByName(personaName) {
+      const persona = this.members.find(
+        (m) => m.persona && m.persona.name === personaName
+      );
+      if (persona) {
+        this.removePersonaById(persona.id);
+      }
+    }
+    
+    function removePersonaById(personaId) {
+      // unequip persona
+      const user = this.members.find(
+        (m) => m.persona && m.persona.id === personaId
+      );
+      if (user) {
+        user.removePersona();
+      }
+    
+      // remove persona from party
+      const index = this.personas.indexOf(personaId);
+      if (index !== -1) {
+        this.personas.splice(index, 1);
+      }
+      $gamePlayer.refresh();
+      $gameMap.needRefresh = true;
+    }
+    
+    function actors_personas(actor_id) {
+      // get the of the personas that belong to the actor
+      let ids = [];
+      for (let id of this.personas) {
+        if ($game_personas[id].users.includes(actor_id)) {
+          ids.push(id);
+        }
+      }
+      // if the party has no personas that belong to the actor an empty list is returned
+      return ids.map((id) => $game_personas[id]);
+    }
+    
+    function persona_available(persona) {
+      // returns if true if persona is not currently equipped by any member of the party
+      return this.members.every((m) => m.persona !== persona);
+    }
+    
+    function menu_persona() {
+      return $game_personas[this.menu_persona_id] || this.menu_personas[0];
+    }
+    
+    function set_menu_persona(persona) {
+      this.menu_persona_id = persona.id;
+    }
+    
+    function menu_personas() {
+      // returns personas currently being shown in menu
+      return actors_personas(this.menu_actor.id);
+    }
+    
+    function menu_persona_next() {
+      // calculate the index of the next persona
+      let index = menu_personas().indexOf(this.menu_persona) || -1;
+      // if next index is higher than the size of menu_personas, it rounds it down to the start
+      index = (index + 1) % menu_personas().length;
+      set_menu_persona(actors_personas(this.menu_actor.id)[index]);
+    }
+    
+    function menu_persona_prev() {
+      // calculate the index of the previous persona
+      let index = menu_personas().indexOf(this.menu_persona) || 1;
+      // if previous index is lower than 0, it basically rounds it back to the end
+      index = (index + menu_personas().length - 1) % menu_personas().length;
+      set_menu_persona(actors_personas(this.menu_actor.id)[index]);
+    }
+    
+    
+    function actorPersona() {
+      let = actorPersona(actorId) 
+        if (!$dataActors[actorId] || !$dataActors[actorId].isPersona()) {
+          return null;
+        }
+        if (!this._data[actorId]) {
+          this._data[actorId] = new Game_Actor(actorId);
+        }
+        return this._data[actorId];
+      }
+    };
+    
+    const _Scene_Battle_update = Scene_Battle.prototype.update;
+    Scene_Battle.prototype.update = function() {
+      _actor = BattleManager.actor(); // set _actor to the current actor
+      _Scene_Battle_update.call(this);
+    };
+    
+    class Persona_Window_ActorCommand extends Window_Command {
+      makeCommandList() {
+        super.makeCommandList();
+        if (!this._actor) {
+          return;
+        }
+        this.addPersonaCommand();
+        if (!persona.UNIFIED_SKILLS) {
+          this.addPersonaSkillsCommand();
+        }
+      }
+    
+      addPersonaCommand() {
+        if (persona.HIDE_PERSONA_COMMAND.contains(this._actor.actorId())) {
+          return;
+        }
+        const name = persona.PERSONA_MENU_NAME;
+        const symbol = "persona";
+        const enabled = this._actor.canChangePersona() && !this._actor.onlyPersona();
+        const command = { name, symbol, enabled };
+        const index = persona.PERSONA_BATTLE_COMMAND_INDEX - 1;
+        this._list.splice(index, 0, command);
+      }
+    
+      addPersonaSkillsCommand() {
+        if (!this._actor.persona()) {
+          return;
+        }
+        const addedStypeIds = this._actor.persona().addedSkillTypes();
+        let index = persona.PERSONA_SKILLS_COMMAND_INDEX;
+        addedStypeIds.sort().forEach(stypeId => {
+          const name = `${persona.PERSONA_MENU_NAME} ${$dataSystem.skillTypes[stypeId]}`;
+          const symbol = "persona_skills";
+          const enabled = true;
+          const command = { name, symbol, enabled, ext: stypeId };
+          this._list.splice(index, 0, command);
+          index++;
+        });
+      }
+    
+      refreshPersonaChange() {
+        this.setup(this._actor);
+        this.refresh();
+      }
+    }
+    
+    class Window_BattlePersonas extends Window_Command {
+      constructor(actor) {
+        const x = 0;
+        const y = 0;
+        super(x, y);
+        this._actor = actor;
+        this._personas = $gameParty.actorsPersonas(this._actor.actorId());
+        this.selectLast();
+      }
+    
+      setActor(actor) {
+        if (this._actor === actor) {
+          return;
+        }
+        this._actor = actor;
+        this._personas = $gameParty.actorsPersonas(this._actor.actorId());
+        this.refresh();
+        this.selectLast();
+      }
+    
+      windowWidth() {
+        return Graphics.width;
+      }
+    
+      windowHeight() {
+        return Graphics.height / 4;
+      }
+    
+      itemWidth() {
+        return (this.width - this.standardPadding() * 2 + this.spacing()) / this.maxCols() - this.spacing();
+      }
+    
+      maxCols() {
+        return 2;
+      }
+    
+      itemHeight() {
+        return this.lineHeight();
+      }
+    
+      numVisibleRows() {
+        return 4;
+      }
+    
+      itemMax() {
+        return this._personas.length;
+      }
+    
+      processHandling() {
+        if (this.isOpenAndActive()) {
+          if (this.isHandled("equip") && Input.isTriggered("ok")) {
+            this.processOk();
+          } else if (this.isHandled("cancel") && Input.isTriggered("cancel")) {
+            this.processCancel();
+          }
+        }
+      }
+    }
+    
+    // Define the plugin and its functions
+    (function() {
+        // Override the callEquipHandler() function to call the 'equip' handler
+        Window_MenuActor.prototype.callEquipHandler = function() {
+          this.callHandler('equip');
+        };
+      
+        // Override the isEquipEnabled() function to check if the 'equip' handler is enabled
+        Window_MenuActor.prototype.isEquipEnabled = function() {
+          return this._handlers['equip'];
+        };
+      
+        // Override the drawItemBackground() function to highlight the equipped persona
+        Window_MenuActor.prototype.drawItemBackground = function(index) {
+          console.log("_actor:", this._actor); // Debugging statement
+          const persona = this._actor.persona();
+          console.log("persona:", persona); // Debugging statement
+          if (persona) {
+            console.log("_personas:", this._personas); // Debugging statement
+            const equippedPersonaIndex = this._personas.indexOf(persona);
+            console.log("equippedPersonaIndex:", equippedPersonaIndex); // Debugging statement
+            if (equippedPersonaIndex !== -1 && index === equippedPersonaIndex) {
+              const color = this.pendingColor();
+              color.alpha = 100;
+              this.contents.fillRect(this.itemRect(index), color);
+            }
+          }
+        };
+      })();
+
+    /*Explanation:
+    
+    The first function `callEquipHandler()` is an override function that modifies the behavior of the `Window_MenuActor` prototype. The original function calls the `equip` handler. The override function calls the `equip` handler.
+    
+    The second function `isEquipEnabled()` is an override function that modifies the behavior of the `Window_MenuActor` prototype. The original function checks if the `equip` handler is handled. The override function checks if the `equip` handler is enabled.
+    
+    The third function `drawItemBackground()` is an override function that modifies the behavior of the `Window_MenuActor` prototype. The original function draws the background for an item in the actor menu. The override function highlights the equipped persona by checking if the index of the item is the same as the index of the equipped persona. If it is, it fills the item's background with a translucent color. Note that I changed `this._actor.persona` to `this._actor.persona()` to correctly retrieve the actor's persona object.
+    */
+    
+    // Define the plugin and its functions
+    (function() {
+      // Override the drawPersonaNameLevel() function to draw the persona name and level
+      Window_Status.prototype.drawPersonaNameLevel = function(persona, x, y) {
+          this.changeTextColor(this.systemColor());
+          this.drawText(TextManager.levelA, x, y, 48);
+          this.resetTextColor();
+          this.drawText(persona.level, x + 48, y, 36, 'right');
+          this.drawText(persona.name(), x + 96, y);
+      };
+    })();
+    
+    /*Explanation:
+    
+    The original function `drawPersonaNameLevel()` takes three arguments: `persona`, `rect`, and `enabled`. It changes the text color to the system color, draws the "Level" text, and then draws the persona's level and name. The revised function `drawPersonaNameLevel()` takes two arguments: `persona`, and `x` and `y` coordinates. It changes the text color to the system color, draws the "Level" text, and then resets the text color to the normal color. It then draws the persona's level, name, and positions the text using the `x` and `y` coordinates. 
+    
+    I removed the `rect` and `enabled` arguments because they are not used in the revised function. Additionally, I changed the `Vocab.levelA` to `TextManager.levelA` to use the default system text instead of a custom string. Finally, I changed `persona.name` to `persona.name()` to correctly retrieve the persona's name.
+    */
+    
+    // Define the plugin and its functions
+    (function() {
+      // Override the drawItemName() function to draw the skill name with persona skill color
+      Window_BattleSkill.prototype.drawItemName = function(item, x, y, width) {
+          width = width || 312;
+          if (item) {
+              var iconBoxWidth = Window_Base._iconWidth + 4;
+              this.resetTextColor();
+              this.drawIcon(item.iconIndex, x + 2, y + 2);
+              if (this._actor.personaSkills().includes(item)) {
+                  this.changeTextColor(persona.PERSONA_SKILLS_COLOR);
+              } else {
+                  this.changeTextColor(this.normalColor());
+              }
+              this.drawText(item.name, x + iconBoxWidth, y, width - iconBoxWidth);
+          }
+      };
+    })();
+    
+    /* Explanation:
+    
+    The original code is written in Ruby, but the revised code is written in JavaScript for a RPG Maker MV plugin. 
+    
+    The original code is a method `draw_item_name` defined in the `Window_BattleSkill` class. It takes `item`, `x`, `y`, `enabled`, and `width` as arguments. It draws the icon of the skill, changes the text color based on whether the skill is a persona skill, and then draws the name of the skill. 
+    
+    The revised code is a method `drawItemName` defined in the `Window_BattleSkill` prototype. It takes `item`, `x`, `y`, and `width` as arguments. It first sets a default value of `312` for the `width` argument if it's not provided. It then checks if the `item` exists and draws its icon. It changes the text color based on whether the `item` is a persona skill using the `this._actor.personaSkills().includes(item)` check. If it is a persona skill, it changes the text color to `persona.PERSONA_SKILLS_COLOR`, which is assumed to be a constant defined elsewhere. Otherwise, it changes the text color to `this.normalColor()`. Finally, it draws the name of the skill.
+    */
+    
+    
+    // This code creates a new class Window_Keys that extends Window_Base and defines its constructor function to initialize the window's position, size, and content.
+    
+    class Window_Keys extends Window_Base {
+      constructor() {
+        const width = 200;
+        const height = this.lineHeight();
+        super(Graphics.width - width, Graphics.height - height, width, height);
+        this.determineWindowSize();
+        this.drawContent();
+        this.visible = false;
+      }
+    
+      determineWindowSize() {
+        // determines window's size according to the size of the button images
+        this._selectButton = ImageManager.loadPersona(SELECT_PERSONA_BUTTON_IMG_NAME);
+        this._equipButton = ImageManager.loadPersona(EQUIP_PERSONA_BUTTON_IMG_NAME);
+        this._releaseButton = ImageManager.loadPersona(RELEASE_PERSONA_BUTTON_IMG_NAME);
+        // largest height and width between the two button images
+        const height = Math.max(this._selectButton.height, this._equipButton.height, this._releaseButton.height);
+        const width = Math.max(this._selectButton.width, this._equipButton.width, this._releaseButton.width);
+        // increase width by largest width between two texts
+        const textSize = this.textSize(SELECT_PERSONA_TEXT).width;
+        const width2 = Math.max(textSize, this.textSize(EQUIP_PERSONA_TEXT).width, this.textSize(RELEASE_PERSONA_TEXT).width);
+        width += width2;
+    
+        // max width of window is half the width of the game window so that it doesn't
+        // overlap with the personas window
+        this.width = Math.min(width + this.standardPadding() * 2, Graphics.width / 2);
+        this.height = height * 3 + this.lineHeight() + this.standardPadding() * 2;
+    
+        this.x = Graphics.width - this.width;
+        this.y = Graphics.height - this.height;
+    
+        this.createContents();
+      }
+    
+    drawContent() {
+      this.contents.clear();
+    
+      // draw top button (select)
+      let x = this._selectButton.width;
+      const txtHeight = this.textSize(SELECT_PERSONA_TEXT).height;
+      const btnHeight = this._selectButton.height;
+      let y = Math.max(txtHeight, btnHeight) / 2;
+      this.contents.blt(0, y - btnHeight / 2, this._selectButton, this._selectButton.rect);
+      this.drawText(SELECT_PERSONA_TEXT, x, y - txtHeight / 2, this.width - x - this.standardPadding(), line_height);
+    
+      // draw bottom button (equip)
+      x = this._selectButton.width;
+      y += Math.max(btnHeight, txtHeight) / 2;
+      txtHeight = this.textSize(EQUIP_PERSONA_TEXT).height;
+      btnHeight = this._equipButton.height;
+      y += Math.max(txtHeight, btnHeight) / 2;
+      this.contents.blt(0, y - btnHeight / 2, this._equipButton, this._equipButton.rect);
+      this.drawText(EQUIP_PERSONA_TEXT, x, y - txtHeight / 2, this.width - x - this.standardPadding(), line_height);
+    
+      // draw bottom button (release)
+      x = this._releaseButton.width;
+      y += Math.max(btnHeight, txtHeight) / 2;
+      txtHeight = this.textSize(RELEASE_PERSONA_TEXT).height;
+      btnHeight = this._releaseButton.height;
+      y += Math.max(txtHeight, btnHeight) / 2;
+      this.contents.blt(0, y - btnHeight / 2, this._releaseButton, this._releaseButton.rect);
+      this.drawText(RELEASE_PERSONA_TEXT, x, y - txtHeight / 2, this.width - x - this.standardPadding(), line_height);
+    }
+    };
+    // Define a new class that extends Window_MenuCommand
+class My_Window_MenuCommand extends Window_MenuCommand {
+  
+    // Override the makeCommandList function to add the persona command
+    makeCommandList() {
+      super.makeCommandList();
+      this.addMainCommands();
+      this.addPersonaCommand();
+    }
+    
+    // Add the persona command to the list of commands
+    addPersonaCommand() {
+      const name = persona.PERSONA_MENU_NAME;
+      const enabled = this.areMainCommandsEnabled();
+      const ext = null;
+      const command = {
+        name: name,
+        symbol: "personas",
+        enabled: enabled,
+        ext: ext
+      };
+      const index = persona.PERSONA_MENU_COMMAND_INDEX + 1;
+      this._list.splice(index, 0, command);
+    
+    
+    // Override this function to determine if main commands are enabled
+    Window_MenuCommand.prototype.addMainCommands = function() {
+        var enabled = this.areMainCommandsEnabled();
+        if (this.needsCommand('personas')) {
+            this.addCommand(TextManager.personas, 'personas', enabled);
+        } // replace with your own code to determine if main commands are enabled
+    }
+  };
+};
+
+class Window_Personas extends Window_Command {
+            constructor() {
+              super(0, 0);
+            }
+          
+            makeCommandList() {
+              this.addCommand(this.personaCommandName(), 'personas');
+            }
+          
+            personaCommandName() {
+              return personas.PERSONA_MENU_NAME;
+            }
+          }
+          
+
+      Window_Personas.prototype.initialize = function(actor) {
+        this._actor = actor;
+        this._personas = $gameParty.actors_personas(this._actor.actorId());
+        Window_Command.prototype.initialize.call(this, 0, 0);
+        this.visible = false;
+        this.selectLast();
+      };
+      
+      Window_Personas.prototype.setActor = function(actor) {
+        if (this._actor !== actor) {
+          this._actor = actor;
+          this._personas = $gameParty.actors_personas(this._actor.actorId());
+          this.refresh();
+          this.selectLast();
+        }
+      };
+      
+      Window_Personas.prototype.personas = function() {
+        return this._personas;
+      };
+      
+      Window_Personas.prototype.windowWidth = function() {
+        return Graphics.width / 2;
+      };
+      
+      Window_Personas.prototype.windowHeight = function() {
+        return Graphics.height;
+      };
+      
+      Window_Personas.prototype.itemHeight = function() {
+        return (this.height - this.standardPadding() * 2) / this.numVisibleRows();
+      };
+      
+      Window_Personas.prototype.numVisibleRows = function() {
+        return 4;
+      };
+      
+      Window_Personas.prototype.maxItems = function() {
+        return this._personas.length;
+      };
+      
+      Window_Personas.prototype.currentPersona = function() {
+        return this._personas[this.index()];
+      };
+
+
+      Window_Personas.prototype.processHandling = function() {
+        if (!this.isOpenAndActive()) {
+          return;
+        }
+        Window_Selectable.prototype.processHandling.call(this);
+        if (this._personas.length === 0) {
+          return;
+        }
+        if (this.isEquipEnabled() && Input.isTriggered('equip')) {
+          this.processEquip();
+        }
+        if (this.isHandled('release') && Input.isTriggered('release')) {
+          this.processRelease();
+        }
+      };
+    
+    Window_Personas.prototype.isEquipEnabled = function() {
+      return true;
+    };
+    
+    Window_Personas.prototype.isCurrentItemEnabled = function() {
+      return this.isEnabled(this._personas[this.index()]);
+    };
+    
+    Window_Personas.prototype.refresh = function() {
+      this._personas = $gameParty.actors_personas(this._actor.actorId());
+      Window_Command.prototype.refresh.call(this);
+    };
+    
+    Window_Personas.prototype.makeCommandList = function() {
+      for (var i = 0; i < this._personas.length; i++) {
+        var name = this._personas[i].name;
+        var ext = null;
+        var enabled = this.isEnabled(this._personas[i]);
+        this.addCommand(name, 'personas', enabled, ext);
+      }
+    };
+    
+    Window_Personas.prototype.isEnabled = function(item) {
+      return true;
+    };
+    
+    Window_Personas.prototype.processRelease = function() {
+      this.callHandler('release');
+    };
+    
+    Window_Personas.prototype.processEquip = function() {
+      if (this.isCurrentItemEnabled()) {
+        SoundManager.playEquip();
+        this.callOkHandler();
+      } else {
+        SoundManager.playBuzzer();
+      }
+    };
+    
+    function draw_block4(y) {
+      var width = Graphics.boxWidth - 8;
+      this.drawDarkRect(4, y, width, line_height * 3);
+      this.changeTextColor(this.systemColor());
+      this.drawText(TextManager.param(2), 64, y, 120);
+      this.drawText(TextManager.param(3), 64, y + line_height, 120);
+      this.drawText(TextManager.param(4), 64, y + line_height * 2, 120);
+      this.resetTextColor();
+      this.drawText(this._persona.param(2), 192, y, 48, 'right');
+      this.drawText(this._persona.param(3), 192, y + line_height, 48, 'right');
+      this.drawText(this._persona.param(4), 192, y + line_height * 2, 48, 'right');
+      this.drawNewParam(4, y + line_height * 4, 'mhp');
+      this.drawNewParam(4, y + line_height * 5, 'mmp');
+      this.drawNewParam(4, y + line_height * 6, 'atk');
+      this.drawNewParam(4, y + line_height * 7, 'def');
+      this.drawNewParam(4, y + line_height * 8, 'mat');
+      this.drawNewParam(4, y + line_height * 9, 'mdf');
+      this.drawNewParam(4, y + line_height * 10, 'agi');
+      this.drawNewParam(4, y + line_height * 11, 'luk');
+    };
+    
+    function draw_new_param(x, y, param_id) {
+      if (this._persona.paramPlus(param_id) !== 0) {
+        this.changeTextColor(this.paramchangeTextColor());
+      }
+      this.drawText(this._persona.param(param_id), x, y, 48, 'right');
+      this.resetTextColor();
+      this.drawText('/', x + 52, y, 8);
+      this.drawText(this._persona.paramMax(param_id), x + 60, y, 48, 'right');
+      if (this._persona.paramPlus(param_id) !== 0) {
+        this.changeTextColor(this.paramchangeTextColor());
+        this.drawText('+' + this._persona.paramPlus(param_id), x + 96, y, 48, 'right');
+        this.resetTextColor();
+      }
+    };
+    
+    // Scene_MenuPersona
+    //
+    // The scene class of the persona menu screen.
+    
+    function Scene_MenuPersona() {
+      this.initialize.apply(this, arguments);
+    }
+    
+    Scene_MenuPersona.prototype = Object.create(Scene_MenuBase.prototype);
+    Scene_MenuPersona.prototype.constructor = Scene_MenuPersona;
+    
+    Scene_MenuPersona.prototype.onPersonaOk = function() {
+      this._statusWindow.persona = this._personasWindow.currentPersona();
+      this._statusWindow.show();
+      this._personasWindow.deactivate();
+    };
+    
+    Scene_MenuPersona.prototype.personaEquip = function() {
+      var prevPersonaIndex = this._personasWindow.personas().indexOf(this._actor.persona());
+      this._actor.removePersona();
+      if (prevPersonaIndex !== -1) {
+          this._personasWindow.redrawItem(prevPersonaIndex);
+      }
+      if (this._statusWindow.active) {
+          this._actor.changePersona(this._statusWindow.persona());
+      } else {
+          this._actor.changePersona(this._personasWindow.currentPersona());
+      }
+      var index = this._personasWindow.personas().indexOf(this._actor.persona());
+      this._personasWindow.redrawItem(index);
+      $gameParty.menuPersona = this._actor.persona();
+    };
+    
+    Scene_MenuPersona.prototype.onActorChange = function() {
+      if (this._actor.onlyPersona() && this._persona !== null) {
+          this._personasWindow.setActor(this._actor);
+          this._personasWindow.deactivate();
+          this._personasWindow.hide();
+          this._buttonsWindow.hide();
+          this._statusWindow.persona = this._persona;
+          this._statusWindow.show();
+      } else {
+          this._statusWindow.deactivate();
+          this._statusWindow.hide();
+          this._buttonsWindow.show();
+          this._personasWindow.setActor(this._actor);
+          this._personasWindow.show();
+      }
+    };
+    
+    Scene_MenuPersona.prototype.nextActor = function() {
+      var newActor = $gameParty.menuActorNext();
+      if (newActor.onlyPersona() && newActor.persona() === null) {
+          $gameParty.menuActorPrev();
+      } else {
+          this._actor = newActor;
+          this._persona = this._actor.persona();
+          this.onActorChange();
+      }
+    };
+    
+    Scene_MenuPersona.prototype.prevActor = function() {
+      var newActor = $gameParty.menuActorPrev();
+      if (newActor.onlyPersona() && newActor.persona() === null) {
+          $gameParty.menuActorNext();
+      } else {
+          this._actor = newActor;
+          this._persona = this._actor.persona();
+          this.onActorChange();
+      }
+    };
+    
+    Scene_MenuPersona.prototype.nextPersona = function() {
+      if (this._actor.onlyPersona()) {
+          this.nextActor();
+      } else {
+          this._persona = $gameParty.menuPersonaNext();
+          this._statusWindow.persona = this._persona;
+          this._statusWindow.activate(); // pagedown handler deactivates window
+      }
+    };
+    
+    Scene_MenuPersona.prototype.prevPersona = function() {
+      if (this._actor.onlyPersona()) {
+          this.prevActor();
+      } else {
+          this._persona = $gameParty.menuPersonaPrev();
+          this._statusWindow.persona = this._persona;
+          this._statusWindow.activate(); // pagedown handler deactivates window
+      }
+    };
+    
+    Scene_MenuPersona.prototype.closeStatus = function() {
+      if (this._actor.onlyPersona()) {
+          SceneManager.pop();
+      } else {
+          this._statusWindow.deactivate();
+          this._statusWindow.hide();
+          this._personasWindow.activate();
+      }
+    };
+
+
+
+
+    /////////////////////////////////////////////////////
+    
+    /*
+    Skill Forget
+  */
