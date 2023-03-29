@@ -132,10 +132,9 @@ Game_Actor.prototype.hideStatusNickname = function() {
 };
 };
 
-ImageManager.isObjectCharacter = function(filename) {
-    var sign = filename.match(/^[!]+/);
-    return sign && sign[0].contains('!');
-};
+ {
+    ImageManager.loadBitmap("img/persona/", filename, 0, true);
+  };
 
 
     
