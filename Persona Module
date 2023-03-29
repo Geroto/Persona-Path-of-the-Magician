@@ -1,4 +1,5 @@
-{
+
+          {
     function persona() {}
     
     persona.PERSONA_EXP_GAIN_MULTIPLIER = 1.0;
@@ -132,12 +133,16 @@
     };
    };
 
-  {
-    ImageManager.loadPersona = function(filename) {
-  return this.loadBitmap("img/persona/", filename, 0, true);
-};
-
+   function loadPersonaImage(filename) {
+    ImageManager.loadBitmap("img/persona/", filename, 0, true);
+  }  
+  
+  ImageManager.isObjectCharacter = function(filename) {
+    console.log("filename = " + filename);
+    var sign = filename.match(/^[\!\$]+/);
+    return sign && sign[0].contains('!');
   };
+  
  
     
     DataManager.persona_cgo = DataManager.create_game_objects;
