@@ -1,5 +1,4 @@
-
-          {
+{
     function persona() {}
     
     persona.PERSONA_EXP_GAIN_MULTIPLIER = 1.0;
@@ -133,15 +132,17 @@
     };
    };
 
-   function loadPersonaImage(filename) {
-    ImageManager.loadBitmap("img/persona/", filename, 0, true);
-  }  
+  // This function will load a persona image from the specified filename
+function loadPersonaImage(filename) {
+  ImageManager.loadBitmap("img/persona/", filename, 0, true);
+}
   
-  ImageManager.isObjectCharacter = function(filename) {
-    console.log("filename = " + filename);
-    var sign = filename.match(/^[\!\$]+/);
-    return sign && sign[0].contains('!');
-  };
+// Override the ImageManager.isObjectCharacter method to detect persona images
+ImageManager.isObjectCharacter = function(filename) {
+  console.log("filename = " + filename);
+  var sign = filename.match(/^[\!\$]+/);
+  return sign && sign[0].contains('!');
+};
   
  
     
@@ -921,30 +922,47 @@
     
     // This code creates a new class Window_Keys that extends Window_Base and defines its constructor function to initialize the window's position, size, and content.
     
-    class Window_Keys extends Window_Base {
-      constructor() {
-        const width = 200;
-        const height = this.lineHeight();
-        super(Graphics.width - width, Graphics.height - height, width, height);
-        this.determineWindowSize();
-        this.drawContent();
-        this.visible = false;
-      }
+    // Define the Window_Keys class
+
+// Define constants for button text
+const SELECT_PERSONA_TEXT = "Select Persona";
+const EQUIP_PERSONA_TEXT = "Equip Persona";
+const RELEASE_PERSONA_TEXT = "Release Persona";
+
+// Override the Scene_Map.createAllWindows method to add the Window_Keys window
+Scene_Map.prototype.createAllWindows = function() {
+  this.createMessageWindow();
+  this._keysWindow = new Window_Keys();
+  this.addWindow(this._keysWindow);
+};
+
+
+class Window_Keys extends Window_Base {
+  constructor() {
+    const width = 200;
+    const height = this.lineHeight();
+    super(Graphics.width - width, Graphics.height - height, width, height);
+    this.determineWindowSize();
+    this.drawContent();
+    this.visible = false;
+  }
     
       determineWindowSize() {
-        // determines window's size according to the size of the button images
+        // Load button images
         this._selectButton = ImageManager.loadPersona("select_persona_button.png");
-        this._equipButton = ImageManager.loadPersona("equip_persona_button")
-        this._releaseButton = ImageManager.loadPersona("release_persona_button.png")
-        // largest height and width between the two button images
+        this._equipButton = ImageManager.loadPersona("equip_persona_button.png");
+        this._releaseButton = ImageManager.loadPersona("release_persona_button.png");
+    
+        // Get largest height and width between the button images
         const height = Math.max(this._selectButton.height, this._equipButton.height, this._releaseButton.height);
         const width = Math.max(this._selectButton.width, this._equipButton.width, this._releaseButton.width);
-        // increase width by largest width between two texts
+    
+        // Increase width by largest width between two texts
         const textSize = this.textSize(SELECT_PERSONA_TEXT).width;
         const width2 = Math.max(textSize, this.textSize(EQUIP_PERSONA_TEXT).width, this.textSize(RELEASE_PERSONA_TEXT).width);
         width += width2;
     
-        // max width of window is half the width of the game window so that it doesn't
+        // Max width of window is half the width of the game window so that it doesn't
         // overlap with the personas window
         this.width = Math.min(width + this.standardPadding() * 2, Graphics.width / 2);
         this.height = height * 3 + this.lineHeight() + this.standardPadding() * 2;
@@ -955,36 +973,26 @@
         this.createContents();
       }
     
-    drawContent() {
-      this.contents.clear();
+      drawContent() {
+        // Draw the buttons and text
+        const x = this.standardPadding();
+        const y = this.lineHeight() + this.standardPadding();
+        this.drawButton(this._selectButton, SELECT_PERSONA_TEXT, x, y);
+        this.drawButton(this._equipButton, EQUIP_PERSONA_TEXT, x, y * 2);
+        this.drawButton(this._releaseButton, RELEASE_PERSONA_TEXT, x, y * 3);
+      }
     
-      // draw top button (select)
-      let x = this._selectButton.width;
-      const txtHeight = this.textSize(SELECT_PERSONA_TEXT).height;
-      const btnHeight = this._selectButton.height;
-      let y = Math.max(txtHeight, btnHeight) / 2;
-      this.contents.blt(0, y - btnHeight / 2, this._selectButton, this._selectButton.rect);
-      this.drawText(SELECT_PERSONA_TEXT, x, y - txtHeight / 2, this.width - x - this.standardPadding(), line_height);
-    
-      // draw bottom button (equip)
-      x = this._selectButton.width;
-      y += Math.max(btnHeight, txtHeight) / 2;
-      txtHeight = this.textSize(EQUIP_PERSONA_TEXT).height;
-      btnHeight = this._equipButton.height;
-      y += Math.max(txtHeight, btnHeight) / 2;
-      this.contents.blt(0, y - btnHeight / 2, this._equipButton, this._equipButton.rect);
-      this.drawText(EQUIP_PERSONA_TEXT, x, y - txtHeight / 2, this.width - x - this.standardPadding(), line_height);
-    
-      // draw bottom button (release)
-      x = this._releaseButton.width;
-      y += Math.max(btnHeight, txtHeight) / 2;
-      txtHeight = this.textSize(RELEASE_PERSONA_TEXT).height;
-      btnHeight = this._releaseButton.height;
-      y += Math.max(txtHeight, btnHeight) / 2;
-      this.contents.blt(0, y - btnHeight / 2, this._releaseButton, this._releaseButton.rect);
-      this.drawText(RELEASE_PERSONA_TEXT, x, y - txtHeight / 2, this.width - x - this.standardPadding(), line_height);
-    }
+      drawButton(buttonImage, buttonText, x, y) {
+        const textWidth = this.textSize(buttonText).width;
+        const buttonWidth = buttonImage.width;
+        const buttonHeight = buttonImage.height;
+        const textX = x + (buttonWidth - textWidth) / 2;
+        const textY = y + (buttonHeight - this.lineHeight()) / 2;
+        this.contents.blt(buttonImage, 0, 0, buttonWidth, buttonHeight, x, y);
+        this.drawText(buttonText, textX, textY, textWidth, "center");
+      }
     };
+
     // Define a new class that extends Window_MenuCommand
 class My_Window_MenuCommand extends Window_MenuCommand {
   
