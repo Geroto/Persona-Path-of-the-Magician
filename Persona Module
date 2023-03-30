@@ -39,33 +39,22 @@
     
     // index of persona command in battle commands window
    // index of persona command in battle commands window
-const PERSONA_BATTLE_COMMAND_INDEX = 2;
 // index of persona command in main menu
-const PERSONA_MENU_COMMAND_INDEX = 1;
 
 // name of the button images displayed in the persona list menu window
-const SELECT_PERSONA_BUTTON_IMG_NAME = "select_persona_button";
-const EQUIP_PERSONA_BUTTON_IMG_NAME = "equip_persona_button";
-const RELEASE_PERSONA_BUTTON_IMG_NAME = "release_persona_button";
 
 // better keep a space at the beginning of the text
 const SELECT_PERSONA_TEXT = " Show status";
 const EQUIP_PERSONA_TEXT = " Equip persona";
 const RELEASE_PERSONA_TEXT = " Release persona";
 // written on actor's personas list when no personas are available
-const NO_PERSONAS_MSG = "No personas available.";
 
 // key used to equip persona
-const EQUIP_PERSONA_KEY = 'x';
-const RELEASE_PERSONA_KEY = 'z';
 
 // ids of the default users for a persona that has no users specified
 // can be an empty list
-const DEFAULT_PERSONA_USERS = [1];
 
 // if true user can remove personas from actors that can use only one persona
-const CAN_RELEASE_ONLY_PERSONAS = true;
-const PERSONA_RELEASE_SOUND = {name: "Evasion1", volume: 100, pitch: 100};
 
 // if true then skills of both user and persona will appear under user's skill
 // list
@@ -73,11 +62,8 @@ const UNIFIED_SKILLS = true;
 // when UNIFIED_SKILLS is false, this color is used to differentiate persona's
 // skills from user's skills in the battle's skills list.
 // use ColorManager.normalColor() for normal color
-const PERSONA_SKILLS_COLOR = '#00ff00'; // green
 // index from which the persona's skill commands start (for multiple skill types)
-const PERSONA_SKILLS_COMMAND_INDEX = 4;
 // hides the persona command from actor ids
-const HIDE_PERSONA_COMMAND = [1];
 
     
     //////
@@ -173,12 +159,11 @@ const HIDE_PERSONA_COMMAND = [1];
       };
     };
 
-    // This function will load a persona image from the specified filename
+    ImageManager.loadPersona = function(filename) {
+      return this.loadBitmap('img/persona/', filename, 0, true);
+  };	
 
-    ImageManager.loadPersona = function(filename, hue) {
-      return this.loadBitmap('img/persona/', filename, hue, true);
-    };
-    
+       
      (function() {
       class Game_Actor extends Game_Battler {
         constructor() {
@@ -587,65 +572,6 @@ const HIDE_PERSONA_COMMAND = [1];
     The lack of semicolon error in Visual Studio is because the code is written in a style called Immediately Invoked Function Expression (IIFE) where the function is defined and executed in the same expression. In this case, the function is wrapped in parentheses to make it a function expression, and then immediately invoked with `()` at the end. The semicolon is not necessary in this case, as the parentheses at the end act as a separator between the function and its execution. However, some code editors, including Visual Studio, may still warn about the missing semicolon, but it does not affect the functionality of the code.
     */
     
-    class Game_PartyPersonas extends Game_Unit {
-      constructor() {
-        super();
-        this.personas = [];
-        this.menu_persona_id = 0;
-        this.persona_init();
-      }
-    
-      personas() {
-        // returns party's personas
-        return this.personas.map(id => $game_personas[id]);
-      }
-    
-      setup_battle_test() {
-        super.setup_battle_test();
-        this.setup_test_battle_personas();
-      }
-    
-      battle_personas() {
-        return this.members.filter(m => m.persona != null).map(m => m.persona);
-      }
-    
-      persona_in_party(persona_name) {
-        return this.personas.find(p => p.name == persona_name) != null;
-      }
-    
-      persona_equipped_by(actor_id, persona_name) {
-        const actor = this.members.find(m => m.id == actor_id);
-        if (actor == null || actor.persona == null) {
-          return false;
-        }
-        return actor.persona.name == persona_name;
-      }
-    
-      persona_equipped(persona_name) {
-        const persona = this.personas.find(p => p.name == persona_name);
-        return this.persona_available(persona);
-      }
-    
-      setup_test_battle_personas() {
-        $data_system.test_battlers.forEach(battler => {
-          // get battletest persona of each battle test actor and equip them
-          const actor = $game_actors[battler.actor_id];
-          const btest_persona = $data_actors[battler.actor_id].battletest_persona;
-          if (btest_persona !== 0) {
-            actor.change_persona($game_actors[btest_persona]);
-          }
-        });
-      }
-    
-      add_persona_by_name(persona_name) {
-        const persona = $data_actors.find(a => a != null && a.name == persona_name);
-        if (persona == null) {
-          msgbox(`There was an attempt to add a persona with an incorrect name (${persona_name})`);
-          return;
-        }
-        this.add_persona_by_id(persona.id);
-      }
-    }
     
     function addPersonaById(personaId) {
       // inform user (script user) about the mistake just in case
@@ -759,110 +685,7 @@ const HIDE_PERSONA_COMMAND = [1];
       _Scene_Battle_update.call(this);
     };
     
-    class Persona_Window_ActorCommand extends Window_Command {
-      makeCommandList() {
-        super.makeCommandList();
-        if (!this._actor) {
-          return;
-        }
-        this.addPersonaCommand();
-        if (!persona.UNIFIED_SKILLS) {
-          this.addPersonaSkillsCommand();
-        }
-      }
     
-      addPersonaCommand() {
-        if (persona.HIDE_PERSONA_COMMAND.contains(this._actor.actorId())) {
-          return;
-        }
-        const name = persona.PERSONA_MENU_NAME;
-        const symbol = "persona";
-        const enabled = this._actor.canChangePersona() && !this._actor.onlyPersona();
-        const command = { name, symbol, enabled };
-        const index = persona.PERSONA_BATTLE_COMMAND_INDEX - 1;
-        this._list.splice(index, 0, command);
-      }
-    
-      addPersonaSkillsCommand() {
-        if (!this._actor.persona()) {
-          return;
-        }
-        const addedStypeIds = this._actor.persona().addedSkillTypes();
-        let index = persona.PERSONA_SKILLS_COMMAND_INDEX;
-        addedStypeIds.sort().forEach(stypeId => {
-          const name = `${persona.PERSONA_MENU_NAME} ${$dataSystem.skillTypes[stypeId]}`;
-          const symbol = "persona_skills";
-          const enabled = true;
-          const command = { name, symbol, enabled, ext: stypeId };
-          this._list.splice(index, 0, command);
-          index++;
-        });
-      }
-    
-      refreshPersonaChange() {
-        this.setup(this._actor);
-        this.refresh();
-      }
-    }
-    
-    class Window_BattlePersonas extends Window_Command {
-      constructor(actor) {
-        const x = 0;
-        const y = 0;
-        super(x, y);
-        this._actor = actor;
-        this._personas = $gameParty.actorsPersonas(this._actor.actorId());
-        this.selectLast();
-      }
-    
-      setActor(actor) {
-        if (this._actor === actor) {
-          return;
-        }
-        this._actor = actor;
-        this._personas = $gameParty.actorsPersonas(this._actor.actorId());
-        this.refresh();
-        this.selectLast();
-      }
-    
-      windowWidth() {
-        return Graphics.width;
-      }
-    
-      windowHeight() {
-        return Graphics.height / 4;
-      }
-    
-      itemWidth() {
-        return (this.width - this.standardPadding() * 2 + this.spacing()) / this.maxCols() - this.spacing();
-      }
-    
-      maxCols() {
-        return 2;
-      }
-    
-      itemHeight() {
-        return this.lineHeight();
-      }
-    
-      numVisibleRows() {
-        return 4;
-      }
-    
-      itemMax() {
-        return this._personas.length;
-      }
-    
-      processHandling() {
-        if (this.isOpenAndActive()) {
-          if (this.isHandled("equip") && Input.isTriggered("ok")) {
-            this.processOk();
-          } else if (this.isHandled("cancel") && Input.isTriggered("cancel")) {
-            this.processCancel();
-          }
-        }
-      }
-    }
     
     // Define the plugin and its functions
     (function() {
@@ -974,97 +797,67 @@ class Window_Keys extends Window_Base {
     const width = 200;
     const height = this.lineHeight();
     super(Graphics.width - width, Graphics.height - height, width, height);
+    this.loadPersona();
     this.determineWindowSize();
     this.drawContent();
     this.visible = false;
   }
-    
-      determineWindowSize() {
-        // Load button images        
-        this._selectButton = "select_persona_button.png";
-        this._equipButton = "equip_persona_button.png";
-        this._releaseButton = "release_persona_button.png";
-        
-        var hue = 0; // replace with the hue value you want (or omit if you don't need it)
-        
-        var selectBitmap = ImageManager.loadBitmap(this._selectButton, hue);
-        var equipBitmap = ImageManager.loadBitmap(this._equipButton, hue);
-        var releaseBitmap = ImageManager.loadBitmap(this._releaseButton, hue);
-        
-        // Get largest height and width between the button images
-        const height = Math.max(this._selectButton.height, this._equipButton.height, this._releaseButton.height);
-        const width = Math.max(this._selectButton.width, this._equipButton.width, this._releaseButton.width);
-    
-        // Increase width by largest width between two texts
-        const textSize = this.textSize(SELECT_PERSONA_TEXT).width;
-        const width2 = Math.max(textSize, this.textSize(EQUIP_PERSONA_TEXT).width, this.textSize(RELEASE_PERSONA_TEXT).width);
-        width += width2;
-    
-        // Max width of window is half the width of the game window so that it doesn't
-        // overlap with the personas window
-        this.width = Math.min(width + this.standardPadding() * 2, Graphics.width / 2);
-        this.height = height * 3 + this.lineHeight() + this.standardPadding() * 2;
-    
-        this.x = Graphics.width - this.width;
-        this.y = Graphics.height - this.height;
-    
-        this.createContents();
-      }
-    
-      drawContent() {
-        // Draw the buttons and text
-        const x = this.standardPadding();
-        const y = this.lineHeight() + this.standardPadding();
-        this.drawButton(this._selectButton, SELECT_PERSONA_TEXT, x, y);
-        this.drawButton(this._equipButton, EQUIP_PERSONA_TEXT, x, y * 2);
-        this.drawButton(this._releaseButton, RELEASE_PERSONA_TEXT, x, y * 3);
-      }
-    
-      drawButton(buttonImage, buttonText, x, y) {
-        const textWidth = this.textSize(buttonText).width;
-        const buttonWidth = buttonImage.width;
-        const buttonHeight = buttonImage.height;
-        const textX = x + (buttonWidth - textWidth) / 2;
-        const textY = y + (buttonHeight - this.lineHeight()) / 2;
-        this.contents.blt(buttonImage, 0, 0, buttonWidth, buttonHeight, x, y);
-        this.drawText(buttonText, textX, textY, textWidth, "center");
-      }
-    };
 
-    // Define a new class that extends Window_MenuCommand
-class My_Window_MenuCommand extends Window_MenuCommand {
-  
-    // Override the makeCommandList function to add the persona command
-    makeCommandList() {
-      super.makeCommandList();
-      this.addMainCommands();
-      this.addPersonaCommand();
+  determineWindowSize() {
+    // Load button images
+    this._selectButton = ImageManager.loadPersona("select_persona_button.png");
+    this._equipButton = ImageManager.loadPersona("equip_persona_button.png");
+    this._releaseButton = ImageManager.loadPersona("release_persona_button.png");
+
+    // Get largest height and width between the button images
+    const height = Math.max(this._selectButton.height, this._equipButton.height, this._releaseButton.height);
+    const width = Math.max(this._selectButton.width, this._equipButton.width, this._releaseButton.width);
+
+    // Increase width by largest width between two texts
+    const textSize = Math.max(this.textSize(SELECT_PERSONA_TEXT).width, this.textSize(EQUIP_PERSONA_TEXT).width, this.textSize(RELEASE_PERSONA_TEXT).width);
+    width += textSize;
+
+    // Max width of window is half the width of the game window so that it doesn't
+    // overlap with the personas window
+    this.width = Math.min(width + this.standardPadding() * 2, Graphics.width / 2);
+    this.height = height * 3 + this.lineHeight() + this.standardPadding() * 2;
+
+    this.x = Graphics.width - this.width;
+    this.y = Graphics.height - this.height;
+  }
+
+  drawContent() {
+    // Draw the buttons and text
+    const x = this.standardPadding();
+    const y = this.lineHeight() + this.standardPadding();
+    this.drawButton(this._selectButton, SELECT_PERSONA_TEXT, x, y);
+    this.drawButton(this._equipButton, EQUIP_PERSONA_TEXT, x, y * 2);
+    this.drawButton(this._releaseButton, RELEASE_PERSONA_TEXT, x, y * 3);
+  }
+
+  drawButton(buttonImage, buttonText, x, y) {
+    if (!buttonImage) {
+      return; // return early if the image hasn't loaded yet
     }
-    
-    // Add the persona command to the list of commands
-    addPersonaCommand() {
-      const name = persona.PERSONA_MENU_NAME;
-      const enabled = this.areMainCommandsEnabled();
-      const ext = null;
-      const command = {
-        name: name,
-        symbol: "personas",
-        enabled: enabled,
-        ext: ext
-      };
-      const index = persona.PERSONA_MENU_COMMAND_INDEX + 1;
-      this._list.splice(index, 0, command);
-    
-    
-    // Override this function to determine if main commands are enabled
-    Window_MenuCommand.prototype.addMainCommands = function() {
-        var enabled = this.areMainCommandsEnabled();
-        if (this.needsCommand('personas')) {
-            this.addCommand(TextManager.personas, 'personas', enabled);
-        } // replace with your own code to determine if main commands are enabled
+
+    const textWidth = this.textSize(buttonText).width;
+    const buttonWidth = buttonImage.width;
+    const buttonHeight = buttonImage.height;
+    const textX = x + (buttonWidth - textWidth) / 2;
+    const textY = y + (buttonHeight - this.lineHeight()) / 2;
+
+    if (this.contents) {
+      this.contents.blt(buttonImage, 0, 0, buttonWidth, buttonHeight, x, y);
+      this.drawText(buttonText, textX, textY, textWidth, "center");
     }
-  };
-};
+  }
+
+  loadPersona() {
+    // Load the persona data from storage or create an empty array if none exists
+    this._percom = [];
+  }
+}
+
 
 class Window_Personas extends Window_Command {
             constructor() {
@@ -1165,7 +958,7 @@ class Window_Personas extends Window_Command {
       }
     };
     
-    Window_Personas.prototype.isEnabled = function(item) {
+    Window_Personas.prototype.isEnabled = function() {
       return true;
     };
     
