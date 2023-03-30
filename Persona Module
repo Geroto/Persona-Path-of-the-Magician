@@ -174,19 +174,12 @@ const HIDE_PERSONA_COMMAND = [1];
     };
 
     // This function will load a persona image from the specified filename
+
     ImageManager.loadPersona = function(filename, hue) {
-    return this.loadBitmap('img/persona/', filename, hue, true);
+      return this.loadBitmap('img/persona/', filename, hue, true);
     };
-
-    ImageManager.reservePersona = function(filename, hue, reservationId) {
-      return this.reserveBitmap('img/persona/', filename, hue, true, reservationId);
-  };
-
-  ImageManager.requestPersona = function(filename, hue) {
-    return this.requestBitmap('img/persona/', filename, hue, true);
-  };
-
-    (function() {
+    
+     (function() {
       class Game_Actor extends Game_Battler {
         constructor() {
           super();
@@ -987,11 +980,17 @@ class Window_Keys extends Window_Base {
   }
     
       determineWindowSize() {
-        // Load button images
-        this._selectButton = ImageManager.loadPersona("select_persona_button.png");
-        this._equipButton = ImageManager.loadPersona("equip_persona_button.png");
-        this._releaseButton = ImageManager.loadPersona("release_persona_button.png");
-    
+        // Load button images        
+        this._selectButton = "select_persona_button.png";
+        this._equipButton = "equip_persona_button.png";
+        this._releaseButton = "release_persona_button.png";
+        
+        var hue = 0; // replace with the hue value you want (or omit if you don't need it)
+        
+        var selectBitmap = ImageManager.loadBitmap(this._selectButton, hue);
+        var equipBitmap = ImageManager.loadBitmap(this._equipButton, hue);
+        var releaseBitmap = ImageManager.loadBitmap(this._releaseButton, hue);
+        
         // Get largest height and width between the button images
         const height = Math.max(this._selectButton.height, this._equipButton.height, this._releaseButton.height);
         const width = Math.max(this._selectButton.width, this._equipButton.width, this._releaseButton.width);
