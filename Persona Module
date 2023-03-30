@@ -38,19 +38,59 @@
     persona.PERSONA_MENU_NAME = "personas";
     
     // index of persona command in battle commands window
-    persona.PERSONA
+   // index of persona command in battle commands window
+const PERSONA_BATTLE_COMMAND_INDEX = 2;
+// index of persona command in main menu
+const PERSONA_MENU_COMMAND_INDEX = 1;
+
+// name of the button images displayed in the persona list menu window
+const SELECT_PERSONA_BUTTON_IMG_NAME = "select_persona_button";
+const EQUIP_PERSONA_BUTTON_IMG_NAME = "equip_persona_button";
+const RELEASE_PERSONA_BUTTON_IMG_NAME = "release_persona_button";
+
+// better keep a space at the beginning of the text
+const SELECT_PERSONA_TEXT = " Show status";
+const EQUIP_PERSONA_TEXT = " Equip persona";
+const RELEASE_PERSONA_TEXT = " Release persona";
+// written on actor's personas list when no personas are available
+const NO_PERSONAS_MSG = "No personas available.";
+
+// key used to equip persona
+const EQUIP_PERSONA_KEY = 'x';
+const RELEASE_PERSONA_KEY = 'z';
+
+// ids of the default users for a persona that has no users specified
+// can be an empty list
+const DEFAULT_PERSONA_USERS = [1];
+
+// if true user can remove personas from actors that can use only one persona
+const CAN_RELEASE_ONLY_PERSONAS = true;
+const PERSONA_RELEASE_SOUND = {name: "Evasion1", volume: 100, pitch: 100};
+
+// if true then skills of both user and persona will appear under user's skill
+// list
+const UNIFIED_SKILLS = true;
+// when UNIFIED_SKILLS is false, this color is used to differentiate persona's
+// skills from user's skills in the battle's skills list.
+// use ColorManager.normalColor() for normal color
+const PERSONA_SKILLS_COLOR = '#00ff00'; // green
+// index from which the persona's skill commands start (for multiple skill types)
+const PERSONA_SKILLS_COMMAND_INDEX = 4;
+// hides the persona command from actor ids
+const HIDE_PERSONA_COMMAND = [1];
+
     
     //////
     /*
     Skill Forget Module Options
-    */
+    
     // max number of skills a persona can have
     var DEFAULT_MAX_PERSONA_SKILLS = 4;
     
     ///////
-    /*
+    
     Arcana Module Options
-    */
+    
     
     //min arcana rank. arcanas start with 0 rank and will be shown only 
       // when at MIN_RANK or higher
@@ -70,9 +110,9 @@
       ARCANA_PROGRESS_EMPTY_IMG_NAME = "progress_empty"
     
     ///////
-    /*
+    
     Evolution Module Options
-    */
+    
     // ID of common event that runs when a persona is being evolved
     COMMON_EVENT_ID = 1
     
@@ -82,9 +122,9 @@
     RESULTING_PERSONA_VAR_ID = 14
     
     //////
-    /*
+    
     Fusion Module Options
-    */
+    
     // list of actor ids whose personas can be fused.
     // example: if [1, 4, 6] then the player can fuse personas that belong to
     // the actors with id 1, 4 and 6
@@ -92,107 +132,60 @@
     
     /////
     
-    /*
+    
     persona Module Section
     */
-   {
-    Game_Actor.prototype.persona = function() {
-      const note = this.actor().note;
-      return note.match(/<Persona>/i) !== null;
+  
+    {
+      Game_Actor.prototype.persona = function() {
+        const note = this.actor().note;
+        return note.match(/<Persona>/i) !== null;
+      };
+      
+      Game_Actor.prototype.users = function() {
+        const match = /<User: (\d+(,[ ]?\d+)*)?>/.exec(this.actor().note);
+        if (!match) {
+          return persona.DEFAULT_PERSONA_USERS;
+        }
+        const userStr = match[1];
+        const users = userStr.split(",").map(str => parseInt(str));
+        return users;
+      };
+      
+      Game_Actor.prototype.only_persona = function() {
+        const match = /<persona: (\d+)>/.exec(this.actor().note);
+        return match && match[1] ? parseInt(match[1]) : null;
+      };
+      
+      Game_Actor.prototype.minPlayerLevel = function() {
+        const match = /<Player level: (\d+)>/.exec(this.actor().note);
+        return match && match[1] ? parseInt(match[1]) : 0;
+      };
+      
+      Game_Actor.prototype.battletestPersona = function() {
+        const actor = $dataActors[this._actorId];
+        const match = /<Battletest persona: (\d+)>/.exec(actor.note);
+        return match && match[1] ? parseInt(match[1]) : 0;
+      };
+      
+      Game_Actor.prototype.hideStatusNickname = function() {
+        return /<Hide status nickname>/.test(this.actor().note);
+      };
     };
-    
-    Game_Actor.prototype.users = function() {
-      const match = /<User: (\d+(,[ ]?\d+)*)?>/.exec(this.actor().note);
-      if (!match) {
-        return persona.DEFAULT_PERSONA_USERS;
-      }
-      const userStr = match[1];
-      const users = userStr.split(",").map(str => parseInt(str));
-      return users;
-    };
-    
-    Game_Actor.prototype.only_persona = function() {
-      const match = /<persona: (\d+)>/.exec(this.actor().note);
-      return match && match[1] ? parseInt(match[1]) : null;
-    };
-    
-    Game_Actor.prototype.minPlayerLevel = function() {
-      const match = /<Player level: (\d+)>/.exec(this.actor().note);
-      return match && match[1] ? parseInt(match[1]) : 0;
-    };
-    
-    Game_Actor.prototype.battletestPersona = function() {
-      const actor = $dataActors[this._actorId];
-      const match = /<Battletest persona: (\d+)>/.exec(actor.note);
-      return match && match[1] ? parseInt(match[1]) : 0;
-    };
-    
-    Game_Actor.prototype.hideStatusNickname = function() {
-      return /<Hide status nickname>/.test(this.actor().note);
-    };
-   };
 
-  // This function will load a persona image from the specified filename
-function loadPersonaImage(filename) {
-  ImageManager.loadBitmap("img/persona/", filename, 0, true);
-}
-  
-// Override the ImageManager.isObjectCharacter method to detect persona images
-ImageManager.isObjectCharacter = function(filename) {
-  console.log("filename = " + filename);
-  var sign = filename.match(/^[\!\$]+/);
-  return sign && sign[0].contains('!');
-};
-  
- 
-    
-    DataManager.persona_cgo = DataManager.create_game_objects;
-    DataManager.create_game_objects = function() {
-      DataManager.persona_cgo.call(this);
-      $gamePersonas = new Game_Personas();
+    // This function will load a persona image from the specified filename
+    ImageManager.loadPersona = function(filename, hue) {
+    return this.loadBitmap('img/persona/', filename, hue, true);
     };
-    
-    DataManager.persona_msc = DataManager.make_save_contents;
-    DataManager.make_save_contents = function() {
-      var contents = DataManager.persona_msc.call(this);
-      contents.personas = $gamePersonas;
-      return contents;
-    };
-    
-    DataManager.persona_esc = DataManager.extract_save_contents;
-    DataManager.extract_save_contents = function(contents) {
-      DataManager.persona_esc.call(this, contents);
-      $gamePersonas = contents.personas;
-    };
-    
-    //Note that in RPG Maker MV, you do not need to define a module and class structure for DataManager. Instead, you can simply define the functions and their respective aliases within a self-executing anonymous function. Also note that in RPG Maker MV, global variables should be declared with the var keyword to avoid conflicts with other scripts.
-    
-    function Game_Personas() {
-      // Add any properties and methods you need for the Game_Personas class here
-    }
-    
-    (function() {
-      var DataManager_createGameObjects = DataManager.createGameObjects;
-      DataManager.createGameObjects = function() {
-        DataManager_createGameObjects.call(this);
-        $gamePersonas = new Game_Personas();
-      };
-    
-      var DataManager_makeSaveContents = DataManager.makeSaveContents;
-      DataManager.makeSaveContents = function() {
-        var contents = DataManager_makeSaveContents.call(this);
-        contents.personas = $gamePersonas;
-        return contents;
-      };
-    
-      var DataManager_extractSaveContents = DataManager.extractSaveContents;
-      DataManager.extractSaveContents = function(contents) {
-        DataManager_extractSaveContents.call(this, contents);
-        $gamePersonas = contents.personas;
-      };
-    })();
-    
-    
+
+    ImageManager.reservePersona = function(filename, hue, reservationId) {
+      return this.reserveBitmap('img/persona/', filename, hue, true, reservationId);
+  };
+
+  ImageManager.requestPersona = function(filename, hue) {
+    return this.requestBitmap('img/persona/', filename, hue, true);
+  };
+
     (function() {
       class Game_Actor extends Game_Battler {
         constructor() {
@@ -292,7 +285,52 @@ ImageManager.isObjectCharacter = function(filename) {
       // add the Game_Actor class to the global namespace
       window.Game_Actor = Game_Actor;
     })();
-    
+               
+      DataManager.persona_cgo = DataManager.create_game_objects;
+      DataManager.create_game_objects = function() {
+        DataManager.persona_cgo.call(this);
+        $gamePersonas = new Game_Personas();
+      };
+      
+      DataManager.persona_msc = DataManager.make_save_contents;
+      DataManager.make_save_contents = function() {
+        var contents = DataManager.persona_msc.call(this);
+        contents.personas = $gamePersonas;
+        return contents;
+      };
+      
+      DataManager.persona_esc = DataManager.extract_save_contents;
+      DataManager.extract_save_contents = function(contents) {
+        DataManager.persona_esc.call(this, contents);
+        $gamePersonas = contents.personas;
+      };
+      
+      //Note that in RPG Maker MV, you do not need to define a module and class structure for DataManager. Instead, you can simply define the functions and their respective aliases within a self-executing anonymous function. Also note that in RPG Maker MV, global variables should be declared with the var keyword to avoid conflicts with other scripts.
+      
+      function Game_Personas() {
+        // Add any properties and methods you need for the Game_Personas class here
+      }
+      
+      (function() {
+        var DataManager_createGameObjects = DataManager.createGameObjects;
+        DataManager.createGameObjects = function() {
+          DataManager_createGameObjects.call(this);
+          $gamePersonas = new Game_Personas();
+        };
+      
+        var DataManager_makeSaveContents = DataManager.makeSaveContents;
+        DataManager.makeSaveContents = function() {
+          var contents = DataManager_makeSaveContents.call(this);
+          contents.personas = $gamePersonas;
+          return contents;
+        };
+      
+        var DataManager_extractSaveContents = DataManager.extractSaveContents;
+        DataManager.extractSaveContents = function(contents) {
+          DataManager_extractSaveContents.call(this, contents);
+          $gamePersonas = contents.personas;
+        };
+      })();
     
     Game_Actor.prototype.forceChangePersona = function(personaId) {
       if (!$gameParty.personas.find(p => p.id === personaId)) {
@@ -556,7 +594,7 @@ ImageManager.isObjectCharacter = function(filename) {
     The lack of semicolon error in Visual Studio is because the code is written in a style called Immediately Invoked Function Expression (IIFE) where the function is defined and executed in the same expression. In this case, the function is wrapped in parentheses to make it a function expression, and then immediately invoked with `()` at the end. The semicolon is not necessary in this case, as the parentheses at the end act as a separator between the function and its execution. However, some code editors, including Visual Studio, may still warn about the missing semicolon, but it does not affect the functionality of the code.
     */
     
-    class Game_Party extends Game_Unit {
+    class Game_PartyPersonas extends Game_Unit {
       constructor() {
         super();
         this.personas = [];
@@ -719,8 +757,8 @@ ImageManager.isObjectCharacter = function(filename) {
           this._data[actorId] = new Game_Actor(actorId);
         }
         return this._data[actorId];
-      }
-    };
+      };
+  
     
     const _Scene_Battle_update = Scene_Battle.prototype.update;
     Scene_Battle.prototype.update = function() {
@@ -923,11 +961,12 @@ ImageManager.isObjectCharacter = function(filename) {
     // This code creates a new class Window_Keys that extends Window_Base and defines its constructor function to initialize the window's position, size, and content.
     
     // Define the Window_Keys class
-
+/*
 // Define constants for button text
 const SELECT_PERSONA_TEXT = "Select Persona";
 const EQUIP_PERSONA_TEXT = "Equip Persona";
 const RELEASE_PERSONA_TEXT = "Release Persona";
+*/
 
 // Override the Scene_Map.createAllWindows method to add the Window_Keys window
 Scene_Map.prototype.createAllWindows = function() {
@@ -1287,6 +1326,7 @@ class Window_Personas extends Window_Command {
 
     /////////////////////////////////////////////////////
     
-    /*
+  /*
     Skill Forget
-  */
+*/
+  };
