@@ -179,15 +179,3 @@ Game_Interpreter.prototype.commandAddPersonaToParty = function (params) {
     return true;
 };
 
-
-
-
-//-----------------------------------------------------------------------------
-// Window_MenuCommand
-//
-// The window for selecting a command on the menu screen.
-
-Window_MenuCommand.prototype.addOriginalCommands = function() {
-    this.addCommand("Personas", "personas");
-};  
-};
