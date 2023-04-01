@@ -1,240 +1,193 @@
 {
-// Define the Persona Window class
-function Window_PersonaList() {
-    this.initialize.apply(this, arguments);
-  }
-  
-  Window_PersonaList.prototype = Object.create(Window_Selectable.prototype);
-  Window_PersonaList.prototype.constructor = Window_PersonaList;
-  
-  Window_PersonaList.prototype.initialize = function(x, y, width, height) {
-    Window_Selectable.prototype.initialize.call(this, x, y, width, height);
-    this._data = [];
-    this.refresh();
-  };
-  
-  Window_PersonaList.prototype.maxCols = function() {
-    return 1;
-  };
-  
-  Window_PersonaList.prototype.spacing = function() {
-    return 48;
-  };
-  
-  Window_PersonaList.prototype.maxItems = function() {
-    return this._data ? this._data.length : 1;
-  };
-  
-  Window_PersonaList.prototype.item = function() {
-    return this._data[this.index()];
-  };
-  
-  Window_PersonaList.prototype.includes = function(actor) {
-    return actor && actor.actor().meta.race === 'Persona';
-  };
-  
-  Window_PersonaList.prototype.isEnabled = function(actor) {
-    return true;
-  };
-  
-  Window_PersonaList.prototype.makeItemList = function() {
-    this._data = $gameParty.allMembers().filter(function(actor) {
-      return this.includes(actor);
-    }, this);
-  };
-  
-  Window_PersonaList.prototype.drawItem = function(index) {
-    var actor = this._data[index];
-    var rect = this.itemRect(index);
-    var name = actor.name();
-    var level = actor.level;
-    this.drawActorName(actor, rect.x + 0, rect.y, rect.width);
-    this.drawActorLevel(actor, rect.x + 0, rect.y + 28);
-  };
-  
-  Window_PersonaList.prototype.refresh = function() {
-    this.makeItemList();
-    this.createContents();
-    this.drawAllItems();
-  };
-
-  // Scene_Menu
-
-function Scene_Menu() {
-    this.initialize.apply(this, arguments);
-  }
-  
-  Scene_Menu.prototype = Object.create(Scene_MenuBase.prototype);
-  Scene_Menu.prototype.constructor = Scene_Menu;
-  
-  Scene_Menu.prototype.initialize = function() {
-    Scene_MenuBase.prototype.initialize.call(this);
-  };
-  
-  Scene_Menu.prototype.create = function() {
-    Scene_MenuBase.prototype.create.call(this);
-    this.createCommandWindow();
-    this.createPersonaWindow();
-  };
-  
-  Scene_Menu.prototype.createPersonaWindow = function() {
-    this._personaWindow = new Window_PersonaList(0, this._commandWindow.y + this._commandWindow.height, Graphics.boxWidth, Graphics.boxHeight - this._commandWindow.height);
-    this.addWindow(this._personaWindow);
-    this._personaWindow.setHandler('ok',     this.onPersonaOk.bind(this));
-    this._personaWindow.setHandler('cancel', this.popScene.bind(this));
-  };
-  
-  Scene_Menu.prototype.onPersonaOk = function() {
-    var actor = this._personaWindow.actor();
-    if (actor) {
-      SceneManager.push(Scene_PersonaEquip);
-      SceneManager.prepareNextScene(actor);
-    } else {
-      this._personaWindow.activate();
+//this define Actors with <Persona> tag like members of the party but no in the party really
+class Game_Party extends Game_Unit {
+    constructor() {
+      super();
+      this._gold = 0;
+      this._steps = 0;
+      this._lastItem = new Game_Item();
+      this._menuActorId = 0;
+      this._targetActorId = 0;
+      this._actors = [];
+      this._personaMembers = []; // new array to store Persona members
     }
-  };
-
-  // Scene_PersonaEquip
-
-function Scene_PersonaEquip() {
-    this.initialize.apply(this, arguments);
+  
+    getPersonaMembers() {
+      return this._actors.filter(actor => actor.isPersona());
+    }
+  
+    addActor(actorId) {
+      if (!this._actors.includes(actorId)) {
+        this._actors.push(actorId);
+        $gamePlayer.refresh();
+        $gameMap.requestRefresh();
+      }
+    }
+  
+    removeActor(actorId) {
+      const index = this._actors.indexOf(actorId);
+      if (index !== -1) {
+        this._actors.splice(index, 1);
+        $gamePlayer.refresh();
+        $gameMap.requestRefresh();
+      }
+    }
+  
+    isPersonaMember(actorId) {
+      return this._personaMembers.includes(actorId);
+    }
+  
+    addPersonaMember(actorId) {
+      if (!this.isPersonaMember(actorId)) {
+        this._personaMembers.push(actorId);
+      }
+    }
+  
+    removePersonaMember(actorId) {
+      const index = this._personaMembers.indexOf(actorId);
+      if (index !== -1) {
+        this._personaMembers.splice(index, 1);
+      }
+    }
   }
   
-  Scene_PersonaEquip.prototype = Object.create(Scene_MenuBase.prototype);
-  Scene_PersonaEquip.prototype.constructor = Scene_PersonaEquip;
-  
-  Scene_PersonaEquip.prototype.initialize = function() {
-    Scene_MenuBase.prototype.initialize.call(this);
-  };
-  
-  Scene_PersonaEquip.prototype.prepare = function(actor) {
-    this._actor = actor;
-  };
-  
-  Scene_PersonaEquip.prototype.create = function() {
-    Scene_MenuBase.prototype.create.call(this);
-    this.createStatusWindow();
-    this.createCommandWindow();
-    this.createPersonaWindow();
-  };
-  
-  Scene_PersonaEquip.prototype.createStatusWindow = function() {
-    this._statusWindow = new Window_PersonaStatus(0, 0, Graphics.boxWidth, Graphics.boxHeight / 2);
-    this._statusWindow.setActor(this._actor);
-    this.addWindow(this._statusWindow);
-  };
-  
-  Scene_PersonaEquip.prototype.createCommandWindow = function() {
-    this._commandWindow = new Window_PersonaCommand(0, this._statusWindow.height, Graphics.boxWidth, Graphics.boxHeight - this._statusWindow.height);
-    this._commandWindow.setHandler('equip',   this.commandEquip.bind(this));
-    this._commandWindow.setHandler('status',  this.commandStatus.bind(this));
-    this._commandWindow.setHandler('remove',  this.commandRemove.bind(this));
-    this._commandWindow.setHandler('cancel',  this.popScene.bind(this));
-    this.addWindow(this._commandWindow);
-  };
-  
-  Scene_PersonaEquip.prototype.createPersonaWindow = function() {
-    var x = this._statusWindow.width;
-    var y = 0;
-    var width = Graphics.boxWidth - this._statusWindow.width;
-    var height = Graphics.boxHeight - this._commandWindow.height;
-    this._personaWindow = new Window_PersonaList(x, y, width, height);
-  }
-
-  // Scene_PersonaEquip
-
-function Scene_PersonaEquip() {
-    this.initialize.apply(this, arguments);
-  }
-  
-  Scene_PersonaEquip.prototype = Object.create(Scene_MenuBase.prototype);
-  Scene_PersonaEquip.prototype.constructor = Scene_PersonaEquip;
-  
-  Scene_PersonaEquip.prototype.initialize = function() {
-    Scene_MenuBase.prototype.initialize.call(this);
-  };
-  
-  Scene_PersonaEquip.prototype.prepare = function(actor) {
-    this._actor = actor;
-  };
-  
-  Scene_PersonaEquip.prototype.create = function() {
-    Scene_MenuBase.prototype.create.call(this);
-    this.createStatusWindow();
-    this.createCommandWindow();
-    this.createPersonaWindow();
-  };
-  
-  Scene_PersonaEquip.prototype.createStatusWindow = function() {
-    this._statusWindow = new Window_PersonaStatus(0, 0, Graphics.boxWidth, Graphics.boxHeight / 2);
-    this._statusWindow.setActor(this._actor);
-    this.addWindow(this._statusWindow);
-  };
-  
-  Scene_PersonaEquip.prototype.createCommandWindow = function() {
-    this._commandWindow = new Window_PersonaCommand(0, this._statusWindow.height, Graphics.boxWidth, Graphics.boxHeight - this._statusWindow.height);
-    this._commandWindow.setHandler('equip',   this.commandEquip.bind(this));
-    this._commandWindow.setHandler('status',  this.commandStatus.bind(this));
-    this._commandWindow.setHandler('remove',  this.commandRemove.bind(this));
-    this._commandWindow.setHandler('cancel',  this.popScene.bind(this));
-    this.addWindow(this._commandWindow);
-  };
-  
-  Scene_PersonaEquip.prototype.createPersonaWindow = function() {
-    var x = this._statusWindow.width;
-    var y = 0;
-    var width = Graphics.boxWidth - this._statusWindow.width;
-    var height = Graphics.boxHeight - this._commandWindow.height;
-    this._personaWindow = new Window_PersonaList(x, y, width, height);
-  };
-  
-  // Scene_Menu
-//
-// This scene handles the main menu.
-
-function Scene_Menu() {
-    this.initialize.apply(this, arguments);
-  }
-  
-  Scene_Menu.prototype = Object.create(Scene_MenuBase.prototype);
-  Scene_Menu.prototype.constructor = Scene_Menu;
-  
-  Scene_Menu.prototype.initialize = function() {
-    Scene_MenuBase.prototype.initialize.call(this);
-  };
-  
-  Scene_Menu.prototype.create = function() {
-    Scene_MenuBase.prototype.create.call(this);
-    this.createCommandWindow();
-    this.createPersonaWindow(); // Create the Persona Window
-  };
-  
-  Scene_Menu.prototype.createCommandWindow = function() {
+//Add Personas command to Main Menu
+Scene_Menu.prototype.createCommandWindow = function() {
     this._commandWindow = new Window_MenuCommand(0, 0);
-    this._commandWindow.setHandler("personas", this.commandPersonas.bind(this)); // Add the Personas command
+    this._commandWindow.setHandler('personas',  this.commandPersonas.bind(this)); // Add this line
     this._commandWindow.setHandler('item',      this.commandItem.bind(this));
     this._commandWindow.setHandler('skill',     this.commandPersonal.bind(this));
     this._commandWindow.setHandler('equip',     this.commandPersonal.bind(this));
     this._commandWindow.setHandler('status',    this.commandPersonal.bind(this));
-    this._commandWindow.setHandler('formation', this.commandFormation.bind(this));
     this._commandWindow.setHandler('options',   this.commandOptions.bind(this));
     this._commandWindow.setHandler('save',      this.commandSave.bind(this));
     this._commandWindow.setHandler('gameEnd',   this.commandGameEnd.bind(this));
-    this._commandWindow.setHandler('cancel',    this.popScene.bind(this));
-        this.addWindow(this._commandWindow);
-  };
-  
-  Scene_Menu.prototype.createPersonaWindow = function() {
-    this._personaWindow = new Window_MenuPersonaList(0, this._commandWindow.height);
-    this._personaWindow.setHandler("cancel", this.popScene.bind(this));
-    this._personaWindow.setHandler("equip", this.commandEquip.bind(this));
-    this._personaWindow.setHandler("status", this.commandStatus.bind(this));
-    this._personaWindow.setHandler("remove", this.commandRemove.bind(this));
-    this.addWindow(this._personaWindow);
-  };
-  
-  Scene_Menu.prototype.commandPersonas = function() {
+    this.addWindow(this._commandWindow);
+};
+
+//create the ccommandPersonas method
+Scene_Menu.prototype.commandPersonas = function() {
     SceneManager.push(Scene_MenuPersona);
-  };
-  
+};
+
+//create the Scene_MenuPersona class, which will display the list of actors with the <Persona> note tag in a window
+
+function Scene_MenuPersona() {
+    this.initialize.apply(this, arguments);
+}
+
+Scene_MenuPersona.prototype = Object.create(Scene_MenuBase.prototype);
+Scene_MenuPersona.prototype.constructor = Scene_MenuPersona;
+
+Scene_MenuPersona.prototype.initialize = function() {
+    Scene_MenuBase.prototype.initialize.call(this);
+};
+
+Scene_MenuPersona.prototype.create = function() {
+    Scene_MenuBase.prototype.create.call(this);
+    this.createWindowPersonaList();
+};
+
+Scene_MenuPersona.prototype.createWindowPersonaList = function() {
+    const height = Graphics.boxHeight;
+    const width = Graphics.boxWidth / 2;
+    const x = 0;
+    const y = 0;
+    this._personaListWindow = new Window_PersonaList(x, y, width, height);
+    this._personaListWindow.setHandler("ok", this.onPersonaListOk.bind(this));
+    this._personaListWindow.setHandler("cancel", this.onPersonaListCancel.bind(this));
+    this.addWindow(this._personaListWindow);
+};
+
+Scene_MenuPersona.prototype.onPersonaListOk = function() {
+    const personaListWindow = this._personaListWindow;
+    const persona = personaListWindow.item();
+    if (persona) {
+        SceneManager.push(Scene_Status);
+        SceneManager.prepareNextScene([persona.actorId(), true]);
+    } else {
+        SoundManager.playBuzzer();
+    }
+};
+
+Scene_MenuPersona.prototype.onPersonaListCancel = function() {
+    SceneManager.pop();
+};
+//define de Window_PersonaList
+function Window_PersonaList() {
+    this.initialize.apply(this, arguments);
+}
+
+Window_PersonaList.prototype = Object.create(Window_Selectable.prototype);
+Window_PersonaList.prototype.constructor = Window_PersonaList;
+
+Window_PersonaList.prototype.initialize = function(x, y, width, height) {
+    Window_Selectable.prototype.initialize.call(this, x, y, width, height);
+    this.refresh();
+    this.select(0);
+    this.activate();
+};
+
+Window_PersonaList.prototype.maxCols = function() {
+    return 1;
+};
+
+Window_PersonaList.prototype.maxItems = function() {
+    return $gameParty.allMembers().filter(function(actor) {
+        const note = actor.actor().note;
+        return note.match(/<Persona>/i) !== null;
+    }).length;
+};
+
+Window_PersonaList.prototype.item = function() {
+    return this._data[this.index()];
+};
+
+Window_PersonaList.prototype.includes = function(actor) {
+    const note = actor.actor().note;
+    return note.match(/<Persona>/i) !== null;
+};
+
+Window_PersonaList.prototype.makeItemList = function() {
+    this._data = $gameParty.allMembers().filter(function(actor) {
+        return this.includes(actor);
+    }, this);
+};
+
+Window_PersonaList.prototype.drawItem = function(index) {
+    const actor = this._data[index];
+    const rect = this.itemRect(index);
+    this.changeTextColor(this.normalColor());
+    this.changePaintOpacity(this.isEnabled(actor));
+    this.drawText(actor.name(), rect.x, rect.y, rect.width);
+};
+
+Window_PersonaList.prototype.refresh = function() {
+    this.makeItemList();
+    this.createContents();
+    this.drawAllItems();
+};
+
+//Plugin command to add Persona to a party
+// define plugin command to add Persona actor to party
+Game_Interpreter.prototype.commandAddPersonaToParty = function (params) {
+    const actorId = parseInt(params.actorId);
+    const actor = $gameActors.actor(actorId);
+    if (actor && actor.isPersona()) {
+        $gameParty.addActor(actorId);
+    }
+    return true;
+};
+
+
+
+
+//-----------------------------------------------------------------------------
+// Window_MenuCommand
+//
+// The window for selecting a command on the menu screen.
+
+Window_MenuCommand.prototype.addOriginalCommands = function() {
+    this.addCommand("Personas", "personas");
 };  
+};
