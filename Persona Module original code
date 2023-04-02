@@ -1,81 +1,19 @@
 {
- // Define the $dataPersonas array
-
- Game_Actor.prototype.equippable = function(item) {
-    var etypeId = this.equipSlots()[item.etypeId];
-    if (etypeId === 1 && this._actorId === 1 && item.meta.race === 'Persona') {
-        return this.canEquip(item) && this.isEquipTypeValid(etypeId) && !this.isEquipTypeSealed(etypeId);
-    } else {
-        return false;
-    }
+Ps = {
+    personamembers: [],
 };
 
-Game_Party.prototype.add_persona_by_id = function(actorId) {
-    if (!this._actors.contains(actorId)) {
-      if (personaActors[actorId]) {
-        var actor = $gameActors.actor(actorId);
-        this._actors.push(actorId);
-        actor.isPersona = true;
-        $gamePlayer.refresh();
-        return actor;
-      }
-    }
-    return null;
-  };
-  
+
+// Retain a reference to the original function
+const Game_Actor_setup = Game_Actor.prototype.setup;
+
 // Define a new property called "isPersona" for the Actor class
-Object.defineProperty(Game_Actor.prototype, 'isPersona', {
-    get: function() {
-      return this.actor().meta.race === 'Persona';
-    },
-    configurable: true
-  });
-  
-  var personaActors = {};
-
-  $gameActors.forEach(function(actor) {
-    if (actor.note.includes("<race:Persona>")) {
-      actor.isPersona = true;
-      personaActors[actor.id] = actor;
-    }
-  });
-  
-  //add or remove persona from the party
- // Adds a random Persona actor to the party
- function addPersonabyId(actorId) {
-    var actor = personaActors[actorId];
-    if (actor) {
-      $gameParty.addActor(actorId); // add the Persona actor to the party
-      if ($gameParty.members().includes(actor)) {
-        console.log(actor.name() + " was added to the party");
-        if (actorId === 1) { // if the actor is Morgana
-          equipPersonaActor(actor); // equip the Persona actor to Morgana
-        }
-      }
-    }
+Game_Actor.prototype.isPersona = function() {
+    return this.actor().meta.race === 'Persona';
   };
-
-
- //Plugin command to add Persona to a party
-Game_Interpreter.prototype.addPersonabyId = function (params) {
-    const actorId = parseInt(params.actorId);
-    const actor = $gameActors.actor(actorId);
-    if (actor && actor.isPersona()) {
-        $gameParty.addActor(actorId);
-    }
-    return true;
-};
-  
-  // Equips the specified Persona actor to Morgana
-  function equipPersonaActor(actor) {
-    var morgana = $gameActors.actor(1); // get Morgana actor
-    morgana.forgetSkill(1); // forget Morgana's attack skill
-    morgana.changeClass(actor.actorId(), true); // change Morgana's class to the Persona actor's class
-    console.log(actor.name() + " was equipped to Morgana");
-  }
   
   // Returns an object containing all Persona actors
-  function getPersonaActors() {
+function getPersonaActors() {
     var personaActors = {};
     $gameActors.forEach(function(actor) {
       if (actor.isPersona) {
@@ -83,9 +21,91 @@ Game_Interpreter.prototype.addPersonabyId = function (params) {
       }
     });
     return personaActors;
-  };
+  };  
 
- 
+  // Subclass the Game_Party class to create the Game_PartyPersona class
+  class Game_PartyPersona extends Game_Party {
+    constructor() {
+      super();
+      this._menuActorId = 0;
+      this._targetActorId = 0;
+      this._actors = [];
+      this._personaMembers = []; // new array to store Persona members
+    }
+    
+    static maxMembers() {
+        return 4;
+    }
+    
+    personaMembers() {
+      return this.allMembers().filter(actor => actor.isPersona());
+    }
+   
+};
+
+Game_PartyPersona.prototype.addActor = function(actorId) {
+    if (this._actors.length >= Game_PartyPersona.maxMembers()) {
+        return false; // Return false if the Party Persona is already full
+    }  
+        
+        var actor = $gameActors.actor(actorId);
+        if (actor && !this._actors.includes(actor)) {
+            this._actors.push(actor);
+            actor.setPartyPersonaId(this._id);
+            
+            // Add the persona actor to _personaMembers array
+            if (actor.isPersona()) {
+                this._personaMembers.push(actor);
+            }
+            
+            this.onChange();
+            return true;
+        }
+        
+        return false;
+    };
+    
+
+    Game_PartyPersona.prototype.removeActor = function(actorId) {
+        var actor = $gameActors.actor(actorId);
+        var index = this._actors.indexOf(actor);
+        if (index >= 0) {
+            this._actors.splice(index, 1);
+            actor.setPartyPersonaId(0);
+            if (actor.isPersona()) {
+                var pIndex = PS.personamembers.indexOf(actor);
+                if (pIndex >= 0) {
+                    PS.personamembers.splice(pIndex, 1);
+                }
+            }
+            this.onChange();
+        }
+    };
+    
+    var actor = $gameActors.actor(actorId);
+    if (actor && actor.isPersona() && !PS.personamembers.includes(actor)) {
+      PS.personamembers.push(actor);
+      actor.setPartyPersonaId($gamePartyPersona._id);
+      $gamePartyPersona.onChange();
+    }
+   
+
+Game_PartyPersona.prototype.setupStartingPersonas = function() {
+    this.addActor(10);
+  };
+  
+
+  DataManager = function() {
+    // Call the original createGameObjects function
+    DataManager.createGameObjects.call(this);
+  
+    // Create $gamePartyPersona
+    $gamePartyPersona = new Game_PartyPersona();
+  };
+   
+// Equips the specified Persona actor to Morgana
+
+   
 // Add a new menu command
 Window_MenuCommand.prototype.addPersonasCommand = function() {
   this.addCommand('Personas', 'personas', true);
@@ -109,6 +129,7 @@ Scene_Menu.prototype.createCommandWindow = function() {
   this._commandWindow.setHandler('options', this.commandOptions.bind(this));
   this._commandWindow.setHandler('save', this.commandSave.bind(this));
   this._commandWindow.setHandler('gameEnd', this.commandGameEnd.bind(this));
+  this._commandWindow.setHandler('cancel',    this.popScene.bind(this));
   this.addWindow(this._commandWindow);
 };
 
@@ -117,6 +138,11 @@ Scene_Menu.prototype.commandPersonas = function() {
     SceneManager.push(Scene_Personas);
   };
   
+  Scene_Menu.prototype.onPersonalCancel = function() {
+    this._statusWindow.deselect();
+    this._commandWindow.activate();
+};
+
 //create the Scene_MenuPersona class, which will display the list of actors with the <Persona> note tag in a window
 
 function Scene_Personas() {
@@ -160,10 +186,11 @@ Scene_Personas.prototype.onPersonaListOk = function() {
 Scene_Personas.prototype.onPersonaListCancel = function() {
     SceneManager.pop();
 };
+
 //define de Window_PersonaList
 function Window_PersonaList() {
     this.initialize.apply(this, arguments);
-}
+   }
 
 Window_PersonaList.prototype = Object.create(Window_Selectable.prototype);
 Window_PersonaList.prototype.constructor = Window_PersonaList;
@@ -173,45 +200,123 @@ Window_PersonaList.prototype.initialize = function(x, y, width, height) {
     this.refresh();
     this.select(0);
     this.activate();
+    this.createContents();
 };
 
 Window_PersonaList.prototype.maxCols = function() {
     return 1;
-};
-
-Window_PersonaList.prototype.maxItems = function() {
-    return $gameParty.allMembers().filter(function(actor) {
-        const note = actor.actor().note;
-        return note.match(/<race:Persona>/i) !== null;
-    }).length;
-};
-
-Window_PersonaList.prototype.item = function() {
-    return this._data[this.index()];
-};
-
-Window_PersonaList.prototype.includes = function(actor) {
-    const note = actor.actor().note;
-    return note.match(/<race:Persona>/i) !== null;
-};
-
-Window_PersonaList.prototype.makeItemList = function() {
-    this._data = $gameParty.allMembers().filter(function(actor) {
-        return this.includes(actor);
-    }, this);
-};
-
+  };
+  
+  Window_PersonaList.prototype.maxItems = function() {
+    return $gamePartyPersona.personaMembers().length;
+  };
+  
+  Window_PersonaList.prototype.includes = function(actor) {
+    return $gamePartyPersona.personaMembers().includes(actor.actorId());
+  };
+  
+  Window_PersonaList.prototype.makeItemList = function() {
+    this._data = $gamePartyPersona.personaMembers();
+  };
+  
 Window_PersonaList.prototype.drawItem = function(index) {
     const actor = this._data[index];
     const rect = this.itemRect(index);
+    const nameWidth = rect.width * 0.6;
+    const levelWidth = rect.width * 0.2;
+    const nicknameWidth = rect.width * 0.2;
+    
     this.changeTextColor(this.normalColor());
     this.changePaintOpacity(this.isEnabled(actor));
-    this.drawText(actor.name(), rect.x, rect.y, rect.width);
+    this.drawText(actor.name(), rect.x, rect.y, nameWidth);
+    this.drawText(actor.level, rect.x + nameWidth, rect.y, levelWidth, 'right');
+    this.drawText(actor.nickname, rect.x + nameWidth + levelWidth, rect.y, nicknameWidth, 'right');
 };
 
-Window_PersonaList.prototype.refresh = function() {
-    this.makeItemList();
-    this.createContents();
-    this.drawAllItems();
+Window_PersonaList.prototype.refreshStatus = function() {
+    console.log("refreshStatus called");
+    this.contents.clear();
+    if (this._persona) {
+      console.log("_persona exists");
+      const x = 0;
+      const y = this.lineHeight();
+      const width = this.contentsWidth();
+      const height = this.lineHeight() * 4;
+      const lineHeight = this.lineHeight();
+      this.drawPersonaFace(this._persona, x, y, width, height);
+      this.drawText(this._persona.name(), x + 140, y, width);
+      this.drawText(`Level: ${this._persona.level}`, x, y + lineHeight * 2, width);
+      this.drawText(`HP: ${this._persona.hp}/${this._persona.mhp}`, x, y + lineHeight * 3, width);
+      this.drawText(`SP: ${this._persona.sp}/${this._persona.msp}`, x, y + lineHeight * 4, width);
+    } else {
+      console.log("_persona is undefined");
+    }
+  };
+
+  Window_PersonaList.prototype.select = function(index) {
+    this._index = index;
+    this.refresh();
+    if (this._actor.isPersona()) {
+        this._enableEquipCommand = true;
+        this._selectedPersona = true;
+    }
+    else {
+        this._enableEquipCommand = false;
+        this._selectedPersona = false;
+    }
 };
+
+Window_PersonaList.prototype.changePersona = function(persona) {
+    const actor = this._actor;
+    if (actor.isPersona() && this._selectedPersona && $gamePartyPersona.personaMembers().includes(actor)) {
+        const prevPersona = actor.personaData();
+        $gamePartyPersona.changePersona(actor.actorId(), persona.id);
+        actor.setPersona(persona);
+        const newClass = $dataClasses[prevPersona.classId];
+        const oldClass = $dataClasses[actor._classId];
+        if (newClass !== oldClass) {
+            actor.changeClass(prevPersona.classId, false);
+        }
+        this._enableEquipCommand = false;
+        this._selectedPersona = false;
+        this.refresh();
+    }
+};
+
+Window_PersonaList.prototype.makeCommandList = function() {
+    this._enableEquipCommand = false;
+    this._selectedPersona = false;
+    const actor = this._actor;
+    if (actor) {
+        const personas = $gameSystem.getPersonas();
+        personas.forEach(function(persona) {
+            if (actor.matchPersona(persona) && (!actor.isPersona() || persona.id !== actor.personaData().id)) {
+                const enabled = actor.isEquipPersona(persona) || actor.canEquipPersona(persona);
+                this.addCommand(persona.name, "persona", enabled, persona);
+            }
+        }, this);
+        if (actor.isPersona() && $gamePartyPersona.personaMembers().includes(actor)) {
+            this.addCommand("Equip", "equip", this._enableEquipCommand);
+        }
+    }
+};
+
+  Window_PersonaList.prototype.drawItem = function(index) {
+    const actor = this._data[index];
+    const rect = this.itemRect(index);
+    this.changePaintOpacity(this.isEnabled(actor));
+    this.drawPersonaFace(actor, rect.x, rect.y, 144, rect.height - 8);
+    this.drawText(actor.name(), rect.x + 168, rect.y, rect.width - 168);
+    this.changePaintOpacity(true);
+    this.refreshStatus(actor);
+  };
+  
+  $gamePartyPersona.personaMembers().indexOf($gameActors.actor(10))
+    if (actor.isPersona()) {
+        console.log(actor.name() + " is in the party.");
+        if ($gameParty && $gamePartyPersona.personaMembers()) {
+            // Access the members property here
+        }
+        
+    };
 };
